@@ -1,0 +1,12 @@
+{
+  "saltPrefix": "gdc-kdf:v1",
+  "infoPrefix": "gdc-kdf:v1",
+  "minSeedBytes": 32,
+  "scrypt": {
+    "N": 131072,
+    "r": 8,
+    "p": 1,
+    "dkLen": 128,
+    "salt": "gdc-pki-v1"
+  }
+}

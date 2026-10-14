@@ -1,0 +1,4 @@
+interface:
+  display_name: "GW UNID Local Image Release"
+  short_description: "Build, test, publish, and deploy GW UNID images"
+  default_prompt: "Use $gw-unid-local-image-release to build, validate, publish, and safely deploy one immutable GW UNID image."

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: __GDC_FABRIC_PEER_ALIAS__
+  namespace: __K8S_NAMESPACE_GDC__
+spec:
+  type: ExternalName
+  externalName: __GDC_FABRIC_PEER_TARGET__
+  ports:
+    - name: grpc
+      port: __GDC_FABRIC_PEER_PORT__
+      targetPort: __GDC_FABRIC_PEER_PORT__
+

@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Copy to demo-deploy.config (ignored by git) and adjust only the GKE/edge values.
+# Runtime GW variables should live in a profile file such as `.env.gke.gdc`.
+# `cloud_deploy.sh gke <profile>` loads that env file before sourcing this config.
+
+# GCP / GKE
+export GCP_PROJECT_ID="globaldatacare-test"
+export GCP_REGION="europe-southwest1"
+export GKE_CLUSTER="gdc-unid-demo"
+
+# GW namespace / image / public edge
+# Do not use mutable tags like :demo or :latest.
+# Prefer <package-version>-<git-sha>, for example 1.6.1-8b0539b.
+export K8S_NAMESPACE_GDC="test-gdc-v1"
+export GDC_IMAGE_REPOSITORY="europe-southwest1-docker.pkg.dev/globaldatacare-test/gwtemplate/gwtemplate"
+export GDC_IMAGE_TAG="1.6.1-8b0539b"
+export GDC_IMAGE="${GDC_IMAGE_REPOSITORY}:${GDC_IMAGE_TAG}"
+export GDC_PUBLIC_IP="0.0.0.0"
+export GDC_PUBLIC_URL="http://${GDC_PUBLIC_IP}"
+export GDC_STATIC_IP_NAME="gdc-gw-demo-ip"
+export GDC_GSA_EMAIL="gwtemplate-gke@globaldatacare-test.iam.gserviceaccount.com"
+
+# Runtime env comes from `.env.gke.<profile>`.
+# If you need the provisional startup workaround for a Firestore auth incident,
+# set `STARTUP_SKIP_HOST_CACHE_WARMUP_ON_ERROR=true` there, not here.
+# The same runtime env file should also define `KMS_PROVIDER` and any
+# provider-specific root-custody settings such as `KMS_KEY_ID`.
+
+# Optional external ICA URL. Leave empty while GW runs standalone.
+export DATASPACE_ICA_EXTERNAL_URL=""
+
+# Optional runtime overrides. Most values should come from `.env.gke.<profile>`.
+export NODE_ENV="${NODE_ENV:-demo}"
+export SECURITY_MODE="${SECURITY_MODE:-compat}"
+export NETWORK_MODE="${NETWORK_MODE:-test}"
+export FHIR_LEGACY="${FHIR_LEGACY:-true}"
+export JSON_LEGACY="${JSON_LEGACY:-true}"
+export DIDCOMM_PLAIN="${DIDCOMM_PLAIN:-disabled}"
+export DEMO_ALLOW_INSECURE_BEARER="${DEMO_ALLOW_INSECURE_BEARER:-false}"
+export DEV_SEED="${DEV_SEED:-true}"
+export LOG_PROVIDER="${LOG_PROVIDER:-console}"
+export QUEUE_PROVIDER="${QUEUE_PROVIDER:-mem}"
+export DB_PROVIDER="${DB_PROVIDER:-mem}"
+export STORAGE_PROVIDER="${STORAGE_PROVIDER:-mem}"
+export REPLAY_PROTECTION_PROVIDER="${REPLAY_PROTECTION_PROVIDER:-none}"
+export EMAIL_NOTIFICATION_PROVIDER="${EMAIL_NOTIFICATION_PROVIDER:-console}"
+export CLEARING_HOUSE_MODE="${CLEARING_HOUSE_MODE:-stub}"
+export ICA_MODE="${ICA_MODE:-}"
+
+# Canonical catalog. onehealth-research is mandatory for GW UNID bootstrap.
+export ALLOWED_SECTORS="${ALLOWED_SECTORS:-animal-care,animal-tech,animal-research,animal-insurance,health-care,health-tech,health-research,health-insurance,onehealth-research}"
+
+# GCS bucket is optional in demo/mem mode but the template still accepts it.
+export GCS_BUCKET_NAME="${GCS_BUCKET_NAME:-}"

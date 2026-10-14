@@ -1,0 +1,319 @@
+{
+    "resourceType": "Bundle",
+    "id": "svc-Bundle-04",
+    "identifier": {
+      "system": "http://hl7.eu/fhir/sid/uvci",
+      "value": "V1IT454557891308174803488707671418",
+      "period": {
+        "start": "2021-02-10"
+      }
+    },
+    "type": "document",
+    "timestamp": "2021-02-10T14:30:00+01:00",
+    "entry": [
+      {
+        "fullUrl": "urn:uuid:30551ce1-5a28-4356-b684-1e639094ad4d",
+        "resource": {
+          "resourceType": "Composition",
+          "id": "30551ce1-5a28-4356-b684-1e639094ad4d",
+          "text": {
+            "status": "generated",
+            "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative</b></p><p><b>identifier</b>: id: 3f69e0a5-2177-4540-baab-7a5d0877428f</p><p><b>status</b>: final</p><p><b>type</b>: <span title=\"Codes: {http://loinc.org 82593-5}\">Immunization summary report</span></p><p><b>date</b>: Feb 10, 2021, 1:30:00 PM</p><p><b>author</b>: <a href=\"#Practitioner_d7a490a1-d267-4785-ac98-db56748827fb\">See above (Practitioner/d7a490a1-d267-4785-ac98-db56748827fb)</a></p><p><b>title</b>: Vaccine Certificate Covid-19</p><h3>Attesters</h3><table class=\"grid\"><tr><td>-</td><td><b>Mode</b></td><td><b>Time</b></td><td><b>Party</b></td></tr><tr><td>*</td><td>legal</td><td>Dec 27, 2020, 1:30:00 PM</td><td><a href=\"#Organization_45a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd7\">See above (Organization/45a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd7)</a></td></tr></table><p><b>custodian</b>: <a href=\"#Organization_b66c1b23-21e9-4bd0-9cd7-edd806c126de\">See above (Organization/b66c1b23-21e9-4bd0-9cd7-edd806c126de)</a></p></div>"
+          },
+          "identifier": {
+            "system": "urn:oid:2.16.724.4.8.10.200.10",
+            "value": "3f69e0a5-2177-4540-baab-7a5d0877428f"
+          },
+          "status": "final",
+          "type": {
+            "coding": [
+              {
+                "system": "http://loinc.org",
+                "code": "82593-5",
+                "display": "Immunization summary report"
+              }
+            ]
+          },
+          "subject": {
+            "reference": "urn:uuid:2b90dd2b-2dab-4c75-9bb9-a355e07401e8"
+          },
+          "date": "2021-02-10T14:30:00+01:00",
+          "author": [
+            {
+              "reference": "urn:uuid:d7a490a1-d267-4785-ac98-db56748827fb"
+            }
+          ],
+          "title": "Vaccine Certificate Covid-19",
+          "attester": [
+            {
+              "mode": "legal",
+              "time": "2020-12-27T14:30:00+01:00",
+              "party": {
+                "reference": "urn:uuid:45a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd7"
+              }
+            }
+          ],
+          "custodian": {
+            "reference": "urn:uuid:b66c1b23-21e9-4bd0-9cd7-edd806c126de"
+          },
+          "section": [
+            {
+              "title": "Vaccinations",
+              "code": {
+                "coding": [
+                  {
+                    "system": "http://loinc.org",
+                    "code": "11369-6",
+                    "display": "Hx of Immunization"
+                  }
+                ]
+              },
+              "text": {
+                "status": "generated",
+                "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><strong>Maria Rossi (RSSMRA97L67Z602C)</strong></p><p><span>COVID-19 mRNA Vaccine&nbsp;</span></p><p>Last Update: 2021-02-05</p><ol><li>Dose 1/2<ol><li>Date and time of vaccination: 2021-01-10</li><li><span>AIC#049283: COVID-19 Vaccine Moderna (MODERNA BIOTECH SPAIN, S.L.) - Lot#B1235742&nbsp;</span></li><li>Ospedale Careggi - Firenze</li></ol></li><li>Dose 2/2<ol><li>Date vaccine due: 2021-02-07</li><li>Status: contraindicated (Medical Precaution)</li></ol></li></ol></div>"
+              },
+              "entry": [
+                {
+                  "reference": "urn:uuid:c220e36c-eb67-4fc4-9ba1-2fabc52acec6"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:2b90dd2b-2dab-4c75-9bb9-a355e07401e8",
+        "resource": {
+          "resourceType": "Patient",
+          "id": "2b90dd2b-2dab-4c75-9bb9-a355e07401e8",
+          "text": {
+            "status": "generated",
+            "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative</b></p><p><b>identifier</b>: id: RSSMRA97L67Z602C</p><p><b>name</b>: Maria Rossi </p><p><b>gender</b>: female</p><p><b>birthDate</b>: 1997-07-28</p></div>"
+          },
+          "identifier": [
+            {
+              "system": "http://hl7.it/sid/codiceFiscale",
+              "value": "RSSMRA97L67Z602C"
+            }
+          ],
+          "name": [
+            {
+              "family": "Rossi",
+              "given": [
+                "Maria"
+              ]
+            }
+          ],
+          "gender": "female",
+          "birthDate": "1997-07-28"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:c220e36c-eb67-4fc4-9ba1-2fabc52acec6",
+        "resource": {
+          "resourceType": "ImmunizationRecommendation",
+          "id": "c220e36c-eb67-4fc4-9ba1-2fabc52acec6",
+          "text": {
+            "status": "generated",
+            "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative</b></p><p><b>patient</b>: <a href=\"#Patient_2b90dd2b-2dab-4c75-9bb9-a355e07401e8\">See above (Patient/2b90dd2b-2dab-4c75-9bb9-a355e07401e8)</a></p><p><b>date</b>: 2021-02-05</p><blockquote><p><b>recommendation</b></p><p><b>vaccineCode</b>: <span title=\"Codes: {http://snomed.info/sct 1119349007}\">Severe acute respiratory syndrome coronavirus 2 mRNA only vaccine product</span></p><p><b>forecastStatus</b>: <span title=\"Codes: {http://terminology.hl7.org/CodeSystem/immunization-recommendation-status contraindicated}\">Contraindicated</span></p><p><b>forecastReason</b>: <span title=\"Codes: {http://terminology.hl7.org/CodeSystem/v3-ActReason MEDPREC}\">medical precaution</span></p><h3>DateCriterions</h3><table class=\"grid\"><tr><td>-</td><td><b>Code</b></td><td><b>Value</b></td></tr><tr><td>*</td><td><span title=\"Codes: {http://loinc.org 30980-7}\">Date vaccine due</span></td><td>2021-02-07</td></tr></table><p><b>doseNumber</b>: 2</p><p><b>seriesDoses</b>: 2</p><p><b>supportingImmunization</b>: <a href=\"#Immunization_42befbaf-eba8-44ec-b7d6-0e4a996e0760\">See above (Immunization/42befbaf-eba8-44ec-b7d6-0e4a996e0760)</a></p></blockquote></div>"
+          },
+          "patient": {
+            "reference": "urn:uuid:2b90dd2b-2dab-4c75-9bb9-a355e07401e8"
+          },
+          "date": "2021-02-05",
+          "recommendation": [
+            {
+              "vaccineCode": [
+                {
+                  "coding": [
+                    {
+                      "system": "http://snomed.info/sct",
+                      "code": "1119349007",
+                      "display": "Severe acute respiratory syndrome coronavirus 2 mRNA only vaccine product"
+                    }
+                  ]
+                }
+              ],
+              "forecastStatus": {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/immunization-recommendation-status",
+                    "code": "contraindicated"
+                  }
+                ]
+              },
+              "forecastReason": [
+                {
+                  "coding": [
+                    {
+                      "system": "http://terminology.hl7.org/CodeSystem/v3-ActReason",
+                      "code": "MEDPREC",
+                      "display": "medical precaution"
+                    }
+                  ]
+                }
+              ],
+              "dateCriterion": [
+                {
+                  "code": {
+                    "coding": [
+                      {
+                        "system": "http://loinc.org",
+                        "code": "30980-7",
+                        "display": "Date vaccine due"
+                      }
+                    ]
+                  },
+                  "value": "2021-02-07"
+                }
+              ],
+              "doseNumberPositiveInt": 2,
+              "seriesDosesPositiveInt": 2,
+              "supportingImmunization": [
+                {
+                  "reference": "urn:uuid:42befbaf-eba8-44ec-b7d6-0e4a996e0760"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:45a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd7",
+        "resource": {
+          "resourceType": "Organization",
+          "id": "45a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd7",
+          "text": {
+            "status": "generated",
+            "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative</b></p><p><b>identifier</b>: id: 090903</p><p><b>name</b>: AZ. OSPEDALIERO - UNIVERSITARIA CAREGGI</p></div>"
+          },
+          "identifier": [
+            {
+              "system": "http://terminology.hl7.it/CodeSystem/minsan-hsp",
+              "value": "090903"
+            }
+          ],
+          "name": "AZ. OSPEDALIERO - UNIVERSITARIA CAREGGI"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:b66c1b23-21e9-4bd0-9cd7-edd806c126de",
+        "resource": {
+          "resourceType": "Organization",
+          "id": "b66c1b23-21e9-4bd0-9cd7-edd806c126de",
+          "text": {
+            "status": "generated",
+            "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative</b></p><p><b>identifier</b>: id: 090</p><p><b>name</b>: Regione Toscana</p></div>"
+          },
+          "identifier": [
+            {
+              "system": "http://terminology.hl7.it/CodeSystem/minsan-regione",
+              "value": "090"
+            }
+          ],
+          "name": "Regione Toscana"
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:d7a490a1-d267-4785-ac98-db56748827fb",
+        "resource": {
+          "resourceType": "Practitioner",
+          "id": "d7a490a1-d267-4785-ac98-db56748827fb",
+          "text": {
+            "status": "generated",
+            "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative</b></p><p><b>identifier</b>: id: VRDRCR70H08H703B</p></div>"
+          },
+          "identifier": [
+            {
+              "system": "http://hl7.it/sid/codiceFiscale",
+              "value": "VRDRCR70H08H703B"
+            }
+          ]
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:42befbaf-eba8-44ec-b7d6-0e4a996e0760",
+        "resource": {
+          "resourceType": "Immunization",
+          "id": "42befbaf-eba8-44ec-b7d6-0e4a996e0760",
+          "text": {
+            "status": "generated",
+            "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative</b></p><p><b>status</b>: completed</p><p><b>vaccineCode</b>: <span title=\"Codes: {http://snomed.info/sct 1119349007}, {https://www.aifa.gov.it/aic 049283}\">COVID-19 Vaccine Moderna</span></p><p><b>patient</b>: <a href=\"#Patient_2b90dd2b-2dab-4c75-9bb9-a355e07401e8\">See above (Patient/2b90dd2b-2dab-4c75-9bb9-a355e07401e8)</a></p><p><b>occurrence</b>: 2021-01-10</p><p><b>location</b>: <a href=\"#Location_55a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd8\">See above (Location/55a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd8)</a></p><p><b>manufacturer</b>: <span>MODERNA BIOTECH SPAIN, S.L.</span></p><p><b>lotNumber</b>: B1235742</p><blockquote><p><b>performer</b></p><p><b>actor</b>: <a href=\"#Organization_45a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd7\">Ospedale Careggi - Firenze. Generated Summary: id: 090903; name: AZ. OSPEDALIERO - UNIVERSITARIA CAREGGI</a></p></blockquote><blockquote><p><b>performer</b></p><p><b>actor</b>: <a href=\"#Practitioner_d7a490a1-d267-4785-ac98-db56748827fb\">See above (Practitioner/d7a490a1-d267-4785-ac98-db56748827fb)</a></p></blockquote><h3>ProtocolApplieds</h3><table class=\"grid\"><tr><td>-</td><td><b>TargetDisease</b></td><td><b>DoseNumber[x]</b></td><td><b>SeriesDoses[x]</b></td></tr><tr><td>*</td><td><span title=\"Codes: {http://hl7.org/fhir/sid/icd-10 J12.82}\">Pneumonia due to coronavirus disease 2019</span></td><td>1</td><td>2</td></tr></table></div>"
+          },
+          "status": "completed",
+          "vaccineCode": {
+            "coding": [
+              {
+                "system": "http://snomed.info/sct",
+                "code": "1119349007",
+                "display": "Severe acute respiratory syndrome coronavirus 2 mRNA only vaccine product"
+              },
+              {
+                "system": "https://www.aifa.gov.it/aic",
+                "code": "049283",
+                "display": "COVID-19 Vaccine Moderna"
+              }
+            ],
+            "text": "COVID-19 Vaccine Moderna"
+          },
+          "patient": {
+            "reference": "urn:uuid:2b90dd2b-2dab-4c75-9bb9-a355e07401e8"
+          },
+          "occurrenceDateTime": "2021-01-10",
+          "location": {
+            "reference": "urn:uuid:55a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd8"
+          },
+          "manufacturer": {
+            "display": "MODERNA BIOTECH SPAIN, S.L."
+          },
+          "lotNumber": "B1235742",
+          "performer": [
+            {
+              "actor": {
+                "reference": "urn:uuid:45a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd7",
+                "display": "Ospedale Careggi - Firenze"
+              }
+            },
+            {
+              "actor": {
+                "reference": "urn:uuid:d7a490a1-d267-4785-ac98-db56748827fb"
+              }
+            }
+          ],
+          "protocolApplied": [
+            {
+              "targetDisease": [
+                {
+                  "coding": [
+                    {
+                      "system": "http://hl7.org/fhir/sid/icd-10",
+                      "code": "J12.82",
+                      "display": "Pneumonia due to coronavirus disease 2019"
+                    }
+                  ]
+                }
+              ],
+              "doseNumberPositiveInt": 1,
+              "seriesDosesPositiveInt": 2
+            }
+          ]
+        }
+      },
+      {
+        "fullUrl": "urn:uuid:55a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd8",
+        "resource": {
+          "resourceType": "Location",
+          "id": "55a5c5b1-4ec1-4d60-b4b2-ff5a84a41fd8",
+          "text": {
+            "status": "generated",
+            "div": "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p><b>Generated Narrative</b></p><p><b>name</b>: AZ. OSPEDALIERO - UNIVERSITARIA CAREGGI</p><p><b>address</b>: Firenze IT </p></div>"
+          },
+          "name": "AZ. OSPEDALIERO - UNIVERSITARIA CAREGGI",
+          "address": {
+            "city": "Firenze",
+            "country": "IT"
+          }
+        }
+      }
+    ]
+}

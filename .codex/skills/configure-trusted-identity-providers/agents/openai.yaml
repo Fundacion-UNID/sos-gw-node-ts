@@ -1,0 +1,5 @@
+interface:
+  display_name: "Configure trusted identity providers"
+  short_description: "Configure exact OIDC iss and aud trust in one GW."
+  default_prompt: "Configure or audit trusted OIDC identity providers for this GW deployment."
+

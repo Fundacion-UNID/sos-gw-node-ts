@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gdc-unid-node-ts-staging-config
+data:
+  NODE_ENV: staging
+  LOCAL_SERVICE_ROLE: HOST,ICA,CA
+  PORT: "3300"
+  HOST_INTERNAL_PORT: "3300"
+  HOST_INTERNAL_IP: 0.0.0.0
+  HOST_PUBLIC_URL: https://gw-unid-staging.example.org
+  HOST_EXTERNAL_DOMAIN: gw-unid-staging.example.org
+  # Empty denies cross-portal SubjectIdentityBindingCredential bindings.
+  # Set issuer did:web DIDs only; never card, individual or controller DIDs.
+  SUBJECT_IDENTITY_BINDING_TRUSTED_ISSUERS: ""
+  HOST_LEGAL_NAME: Gateway Host Services
+  HOST_JURISDICTION: ES
+  HOST_COVERAGE_SCOPE: EU
+  HOST_ID_TYPE: TAX
+  HOST_ID_VALUE: A0011223344
+  HOST_ADMIN_EMAIL: admin@host.example.org
+  HOST_ADMIN_UID: host-admin-001
+  HOST_ADMIN_ROLE: ISCO-08|1111
+  SECURITY_MODE: strict
+  NETWORK_MODE: test-network
+  FHIR_LEGACY: "false"
+  JSON_LEGACY: "false"
+  DIDCOMM_PLAIN: "false"
+  DEMO_ALLOW_INSECURE_BEARER: "false"
+  AUTH_TOKEN_VERIFIER: trusted-oidc
+  OIDC_TRUSTED_PROVIDERS_JSON: '[{"iss":"https://securetoken.google.com/uhc-can","aud":"uhc-can"},{"iss":"https://securetoken.google.com/vetchain-connect-personal-st","aud":"vetchain-connect-personal-st"},{"iss":"https://securetoken.google.com/vetchain-connect-prof-staging","aud":"vetchain-connect-prof-staging"},{"iss":"https://securetoken.google.com/soschain-unid-personal-staging","aud":"soschain-unid-personal-staging"},{"iss":"https://securetoken.google.com/soschain-unid-prof-staging","aud":"soschain-unid-prof-staging"},{"iss":"globaldatacare.es","aud":"globaldatacare.es"}]'
+  FIREBASE_PROJECT_ID: uhc-can
+  FIREBASE_ADDITIONAL_AUTH_PROJECT_IDS: vetchain-connect-personal-st,vetchain-connect-prof-staging,soschain-unid-personal-staging,soschain-unid-prof-staging
+  ALLOWED_SECTORS: health-care,health-research,health-tech,onehealth-research
+  DB_PROVIDER: firestore
+  STORAGE_PROVIDER: gcs
+  QUEUE_PROVIDER: mem
+  KMS_PROVIDER: gcp
+  KMS_RUNTIME_KEK_ID: gw-vet-staging
+  CALL_REMINDERS_ENABLED: "true"
+  CALL_REMINDERS_API_ENABLED: "true"
+  CALL_REMINDERS_WORKER_ENABLED: "true"
+  CALL_REMINDERS_FHIR_ENABLED: "true"
+  CALL_TELEPHONY_PROVIDER: twilio
+  CALL_VOICE_ENABLED: "true"
+  CALL_SMS_ENABLED: "false"
+  CALL_VERIFY_ENABLED: "false"
+  CALL_DEFAULT_LOCALE: es-ES
+  CALL_TTS_VOICE: alice
+  CALL_REMINDER_DAEMON_ENABLED: "true"
+  CALL_REMINDER_DAEMON_POLL_SECONDS: "30"

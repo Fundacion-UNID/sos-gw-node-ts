@@ -1,0 +1,9 @@
+spec:
+  ports:
+    - name: http
+      port: 80
+      targetPort: edge-http
+    - name: https
+      port: 443
+      targetPort: edge-https
+

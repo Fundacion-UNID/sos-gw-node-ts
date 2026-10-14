@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "issuedAt": "2026-01-21T00:00:00Z",
+  "issuer": "Fundación UNID",
+  "issuerDid": "did:web:gdc.unid.online",
+  "operators": [
+    {
+      "operatorId": "accuro",
+      "legalName": "Accuro Technology S.L.",
+      "domain": "gdc-host.accuro.es",
+      "roles": ["gdc-operator"],
+      "jurisdictions": ["ES"],
+      "sectors": ["health-*"],
+      "status": "approved",
+      "validFrom": "2026-01-21T00:00:00Z",
+      "validUntil": "2027-01-21T00:00:00Z"
+    }
+  ]
+}

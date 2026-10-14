@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Override 'module' for ts-jest compatibility with modern ESM syntax in tests.
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "allowImportingTsExtensions": true,
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "gdc-common-utils-ts": ["node_modules/gdc-common-utils-ts/dist/index.d.ts"],
+      "gdc-common-utils-ts/*": ["node_modules/gdc-common-utils-ts/dist/*"],
+      "gdc-sdk-client-ts": ["node_modules/gdc-sdk-client-ts/dist/index.d.ts"],
+      "gdc-sdk-client-ts/*": ["node_modules/gdc-sdk-client-ts/dist/*"],
+      "sos-data-utils-ts": ["node_modules/sos-data-utils-ts/dist/index.d.ts"],
+      "sos-data-utils-ts/*": ["node_modules/sos-data-utils-ts/dist/*"]
+    },
+    // Add test-specific types that shouldn't be in the global scope for the main app.
+    "types": ["jest", "node"],
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.test.ts", "src/**/*.spec.ts"]
+}

@@ -1,0 +1,9 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "additionalType": "PublicAdministration",
+  "identifier": "urn:domain:<webdomain>:cds:es:v1:animal-index:entity:tax:P2807900B",
+  "legalName": "Ayuntamiento de Villa Ejemplo",
+  "name": "Ayuntamiento Villa Ejemplo",
+  "taxID": "P2807900B"
+}

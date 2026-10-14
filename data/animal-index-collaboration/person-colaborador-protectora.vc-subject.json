@@ -1,0 +1,8 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "additionalType": "Collaborator",
+  "identifier": "urn:<namespace>:<network>:es:v1:animal-index:entity:tax:P2807900B:employee:ISCO-08|3240:zMultibase58(Multihash(SHA3-256(email)))",
+  "memberOf": "urn:<namespace>:<network>:es:v1:animal-index:entity:tax:P2807900B",
+  "worksFor": "urn:<namespace>:<network>:es:v1:animal-care:entity:tax:B12345678"
+}

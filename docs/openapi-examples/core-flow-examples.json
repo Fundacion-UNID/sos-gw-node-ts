@@ -1,0 +1,512 @@
+{
+  "ORGANIZATION_REGISTRATION_REQUEST": {
+    "jti": "org-registration-request-<test-id>",
+    "thid": "org-registration-thread-<test-id>",
+    "iss": "urn:ietf:rfc:7638:thumbprint-public-sig-key-device",
+    "aud": "did:web:host.example.com",
+    "exp": 1678886460,
+    "iat": 1678886400,
+    "nbf": 1678886400,
+    "type": "application/api+json",
+    "body": {
+      "data": [
+        {
+          "type": "Organization-registration-form-v1.0",
+          "resource": {
+            "resourceType": "Organization",
+            "meta": {
+              "claims": {
+                "@context": "org.schema",
+                "@type": "template",
+                "org.schema.Organization.address.addressCountry": "ES",
+                "org.schema.Organization.identifier.additionalType": "TAX",
+                "org.schema.Organization.identifier.value": "acme-id",
+                "org.schema.Organization.legalName": "Acme Organization SL",
+                "org.schema.Organization.name": "Acme Org",
+                "org.schema.Organization.numberOfEmployees.value": 2,
+                "org.schema.Organization.url": "api.acme.org",
+                "org.schema.Person.email": "admin1@acme.org",
+                "org.schema.Person.hasOccupation": "ISCO-08|1120",
+                "org.schema.Service.category": "health-care",
+                "org.schema.Service.identifier": "did:web:api-provider.example.com",
+                "org.schema.Service.serviceType": "organization/Composition.cruds,organization/ResearchSubject.rs",
+                "org.schema.Service.termsOfService": "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMjAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDQ0ID4+CnN0cmVhbQpCVAovRjEgMjQgVGYKMTAwIDEwMCBUZAooSGVsbG8gUERGKSBUagoKRVQKZW5kc3RyZWFtCmVuZGiago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDEwIDAwMDAwIG4gCjAwMDAwMDAwNTMgMDAwMDAgbiAKMDAwMDAwMDEwNiAwMDAwMCBuIAowMDAwMDAwMjU1IDAwMDAwIG4gCjAwMDAwMDAzNDMgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0MDMKJSVFT0Y="
+              }
+            }
+          }
+        }
+      ]
+    },
+    "meta": {
+      "jwe": {
+        "header": {
+          "typ": "application/didcomm-encrypted+json",
+          "cty": "JWS",
+          "enc": "A256GCM",
+          "alg": "ML-KEM-768",
+          "kid": "thumbprint-public-enc-key-recipient",
+          "skid": "thumbprint-public-enc-key-device",
+          "jwk": {
+            "crv": "ML-KEM-768",
+            "kty": "OKP",
+            "x": "base64url-public-enc-key-device"
+          }
+        }
+      },
+      "jws": {
+        "protected": {
+          "typ": "application/didcomm-signed+json",
+          "cty": "application/didcomm-plain+json",
+          "alg": "ML-DSA-44",
+          "kid": "thumbprint-public-sig-key-device",
+          "jwk": {
+            "alg": "ML-DSA-44",
+            "kty": "AKP",
+            "pub": "base64url-public-sig-key-device"
+          }
+        }
+      }
+    }
+  },
+  "ORGANIZATION_ACTIVATION_REQUEST": {
+    "jti": "org-activation-request-<test-id>",
+    "thid": "org-activation-thread-<test-id>",
+    "iss": "urn:ietf:params:oauth:jwk-thumbprint:sha-256:<controller-signing-thumbprint>",
+    "aud": "host:node-operator-es",
+    "exp": 1678886460,
+    "iat": 1678886400,
+    "nbf": 1678886400,
+    "type": "application/api+json",
+    "body": {
+      "vp_token": "<ica-proof-token>",
+      "controller": {
+        "did": "did:web:people.acme.org:controllers:primary",
+        "sameAs": "urn:multibase:zControllerHash",
+        "publicKeyJwk": {
+          "kid": "controller-es384-001",
+          "kty": "EC",
+          "crv": "P-384",
+          "x": "<x>",
+          "y": "<y>",
+          "alg": "ES384",
+          "use": "sig"
+        },
+        "jwks": {
+          "keys": [
+            {
+              "kid": "controller-didcomm-enc-001",
+              "kty": "EC",
+              "crv": "P-384",
+              "x": "<enc-x>",
+              "y": "<enc-y>",
+              "use": "enc",
+              "purposes": [
+                "didcomm-enc"
+              ]
+            }
+          ]
+        }
+      },
+      "organizationCredential": "<deprecated-legacy-compat>",
+      "representativeCredential": "<deprecated-legacy-compat>",
+      "data": [
+        {
+          "type": "Organization-activation-request-v1.0",
+          "resource": {
+            "meta": {
+              "claims": {
+                "@context": "org.schema",
+                "@type": "template",
+                "org.schema.Organization.address.addressCountry": "ES",
+                "org.schema.Organization.alternateName": "acme-id",
+                "org.schema.Organization.identifier.additionalType": "TAX",
+                "org.schema.Organization.identifier.value": "acme-id",
+                "org.schema.Organization.legalName": "Acme Organization SL",
+                "org.schema.Organization.name": "Acme Org",
+                "org.schema.Organization.numberOfEmployees.value": 2,
+                "org.schema.Organization.url": "api.acme.org",
+                "org.schema.Person.email": "admin1@acme.org",
+                "org.schema.Person.hasOccupation": "ISCO-08|1120",
+                "org.schema.Service.category": "health-care",
+                "org.schema.Service.identifier": "did:web:api-provider.example.com",
+                "org.schema.Service.serviceType": "organization/Composition.cruds,organization/Composition.rs,organization/ResearchSubject.rs",
+                "org.schema.Service.url": "https://connector.example.net/acme/cds-es/v1/health-care",
+                "org.schema.Service.termsOfService": "data:application/pdf;base64,JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCAzMDAgMjAwXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4+PiA+PgplbmRvYmoKNCAwIG9iago8PCAvTGVuZ3RoIDQ0ID4+CnN0cmVhbQpCVAovRjEgMjQgVGYKMTAwIDEwMCBUZAooSGVsbG8gUERGKSBUagoKRVQKZW5kc3RyZWFtCmVuZGiago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDEwIDAwMDAwIG4gCjAwMDAwMDAwNTMgMDAwMDAgbiAKMDAwMDAwMDEwNiAwMDAwMCBuIAowMDAwMDAwMjU1IDAwMDAwIG4gCjAwMDAwMDAzNDMgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0MDMKJSVFT0Y="
+              }
+            }
+          }
+        }
+      ]
+    },
+    "meta": {
+      "jwe": {
+        "header": {
+          "typ": "application/didcomm-encrypted+json",
+          "cty": "JWS",
+          "enc": "A256GCM",
+          "alg": "ML-KEM-768",
+          "kid": "thumbprint-public-enc-key-recipient",
+          "skid": "thumbprint-public-enc-key-device",
+          "jwk": {
+            "crv": "ML-KEM-768",
+            "kty": "OKP",
+            "x": "base64url-public-enc-key-device"
+          }
+        }
+      },
+      "jws": {
+        "protected": {
+          "typ": "application/didcomm-signed+json",
+          "cty": "application/didcomm-plain+json",
+          "alg": "ML-DSA-44",
+          "kid": "thumbprint-public-sig-key-device",
+          "jwk": {
+            "alg": "ML-DSA-44",
+            "kty": "AKP",
+            "pub": "base64url-public-sig-key-device"
+          }
+        }
+      }
+    }
+  },
+  "ORGANIZATION_ORDER_REQUEST": {
+    "jti": "org-order-request-<test-id>",
+    "thid": "org-order-thread-<test-id>",
+    "iss": "urn:ietf:rfc:7638:thumbprint-public-sig-key-device",
+    "aud": "did:web:host.example.com",
+    "exp": 1678886460,
+    "iat": 1678886400,
+    "nbf": 1678886400,
+    "type": "application/api+json",
+    "body": {
+      "data": [
+        {
+          "type": "Organization-order-request-v1.0",
+          "resource": {
+            "resourceType": "Order",
+            "meta": {
+              "claims": {
+                "@context": "org.schema",
+                "org.schema.Order.acceptedOffer.identifier": "{{offerId}}"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "meta": {
+      "jwe": {
+        "header": {
+          "typ": "application/didcomm-encrypted+json",
+          "cty": "JWS",
+          "enc": "A256GCM",
+          "alg": "ML-KEM-768",
+          "kid": "thumbprint-public-enc-key-recipient",
+          "skid": "thumbprint-public-enc-key-device"
+        }
+      },
+      "jws": {
+        "protected": {
+          "typ": "application/didcomm-signed+json",
+          "cty": "application/didcomm-plain+json",
+          "alg": "ML-DSA-44",
+          "kid": "thumbprint-public-sig-key-device"
+        }
+      }
+    }
+  },
+  "CONSENT_CREATION_MESSAGE": {
+    "jti": "unique-consent-fhir-message-<test-id>",
+    "thid": "thread-consent-fhir-batch-<test-id>",
+    "iss": "did:web:ehr-system.example.com",
+    "aud": "did:web:gateway.example.com",
+    "type": "org.hl7.fhir.r4.Bundle",
+    "body": {
+      "resourceType": "Bundle",
+      "type": "batch",
+      "entry": [
+        {
+          "url": "https://ehr-system.example.com/fhir/r4/Consent/patient-consent-uuid",
+          "type": "Consent",
+          "request": {
+            "method": "POST",
+            "url": "/health-care/individual/org.hl7.fhir.api/Consent"
+          },
+          "resource": {
+            "meta": {
+              "claims": {
+                "@context": "org.hl7.fhir.api",
+                "Consent.decision": "permit",
+                "Consent.subject": "{{individualDid}}",
+                "Consent.identifier": "urn:uuid:patient-consent-uuid",
+                "Consent.grantee": "{{physicianOrg}}",
+                "Consent.date": "2025-11-25",
+                "Consent.purpose": "TREAT",
+                "Consent.action": "LOINC|48765-2",
+                "Consent.actor-identifier": "{{physicianDid}}",
+                "Consent.actor-role": "ISCO-08|2211",
+                "Consent.attachment-contenttype": "application/odrl+json",
+                "Consent.attachment-data": "eyAiQGNvbnRleHQiOiAiaHR0cDovL3d3dy53My5vcmcvbnMvb2RybC5qc29ubGQiLCAiQHR5cGUiOiAiQWdyZWVtZW50Ii...sgIlRSRUFUIiB9XSB9XSB9"
+              }
+            },
+            "identifier": "urn:uuid:patient-consent-uuid",
+            "resourceType": "Consent",
+            "status": "active",
+            "scope": {
+              "coding": [
+                {
+                  "system": "http://terminology.hl7.org/CodeSystem/consentscope",
+                  "code": "patient-privacy"
+                }
+              ]
+            },
+            "category": [
+              {
+                "coding": [
+                  {
+                    "system": "http://terminology.hl7.org/CodeSystem/consentcategorycodes",
+                    "code": "TREAT"
+                  }
+                ]
+              }
+            ],
+            "patient": {
+              "reference": "{{individualDid}}"
+            },
+            "performer": [
+              {
+                "reference": "{{physicianDid}}"
+              }
+            ],
+            "provision": {
+              "type": "permit"
+            },
+            "sourceAttachment": {
+              "contentType": "application/odrl+json",
+              "data": "eyAiQGNvbnRleHQiOiAiaHR0cDovL3d3dy53My5vcmcvbnMvb2RybC5qc29ubGQiLCAiQHR5cGUiOiAiQWdyZWVtZW50Ii...sgIlRSRUFUIiB9XSB9XSB9"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "COMMUNICATION_CREATION_MESSAGE": {
+    "jti": "unique-communication-message-<test-id>",
+    "thid": "thread-communication-id",
+    "iss": "did:web:ehr-system.example.com",
+    "aud": "did:web:gateway.acme.org",
+    "type": "org.hl7.fhir.r4.Bundle",
+    "body": {
+      "resourceType": "Bundle",
+      "type": "batch",
+      "entry": [
+        {
+          "type": "Communication",
+          "request": {
+            "method": "POST",
+            "url": "individual/org.hl7.fhir.r4/Communication"
+          },
+          "resource": {
+            "meta": {
+              "claims": {
+                "@context": "org.hl7.fhir.api",
+                "@type": "Communication:Appointment",
+                "Communication.category": "http://terminology.hl7.org/CodeSystem/communication-category|reminder",
+                "Communication.content-attachment-data": "QkVHSU4...5EQVI=",
+                "Communication.content-attachment-title": "appointment-details.ics",
+                "Communication.content-attachment-type": "text/calendar",
+                "Communication.content-reference": "https://url-to-appointment-source.com/some-uuid",
+                "Communication.part-of": "urn:uuid:communication-channel-id",
+                "Communication.recipient": "{{individualDid}}",
+                "Communication.sender": "{{physicianDid}}",
+                "Communication.sent": "2025-10-15T14:30:00Z",
+                "Communication.subject": "{{individualDid}}",
+                "Communication.text": "This is your new appointment. Best regards."
+              }
+            },
+            "resourceType": "Communication",
+            "status": "completed",
+            "partOf": [
+              {
+                "reference": "urn:uuid:communication-channel-id"
+              }
+            ],
+            "category": [
+              {
+                "coding": [
+                  {
+                    "code": "reminder",
+                    "system": "http://terminology.hl7.org/CodeSystem/communication-category"
+                  }
+                ]
+              }
+            ],
+            "recipient": [
+              {
+                "reference": "{{individualDid}}"
+              }
+            ],
+            "sender": {
+              "reference": "{{physicianDid}}"
+            },
+            "sent": "2025-10-15T14:30:00Z",
+            "note": [
+              {
+                "text": "This is your new appointment. Best regards."
+              }
+            ],
+            "payload": [
+              {
+                "contentReference": {
+                  "reference": "https://url-to-appointment-source.com/some-uuid"
+                }
+              },
+              {
+                "contentAttachment": {
+                  "contentType": "text/calendar",
+                  "data": "QkVHSU46VkNBTEVOREFSCgpWRVJTSU9OOjIuMApQUk9ESUQ6LS8vQWNtZS8vZGlkOndlYjphcGkuYWNtZS5vcmcvL0VTCkJFR0lOOlZFVkVOVApVSUQ6PHV1aWQtdjQ+CkRUU1BTVA6MjAyNTEwMTZUMTIwMDAwWgpEVFNUQVJUOjIwMjUxMDE3VDE1MDAwMFoKRF RFTkQ6MjAyNTEwMTdUMTYwMDAwWgpTVU1NQVJZOlJlc3VtZW4gZGUgY2l0YS4KREVTQ1JJUFRJT046RW5jdWVudHJvIHZpcnR1YWwuCkxPQ0FUSU9OOk9ubGluZQpFTkQ6VkVWRU5UCkVORDpWQ0FMRU5EQVI=",
+                  "title": "appointment-details.ics"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "COMPOSITION_UPDATE_MESSAGE": {
+    "jti": "composition-update-request-<test-id>",
+    "thid": "composition-update-thread-<test-id>",
+    "iss": "{{physicianDid}}",
+    "aud": "did:web:api.acme.org",
+    "exp": 1678886460,
+    "iat": 1678886400,
+    "nbf": 1678886400,
+    "type": "org.hl7.fhir.r4.Bundle",
+    "body": {
+      "resourceType": "Bundle",
+      "type": "batch",
+      "entry": [
+        {
+          "type": "Composition",
+          "resource": {
+            "resourceType": "Composition",
+            "status": "final",
+            "meta": {
+              "claims": {
+                "@context": "org.hl7.fhir.api",
+                "@type": "Composition:IndexEntry",
+                "Composition.subject": "{{individualDid}}",
+                "Composition.section": "LOINC|48765-2",
+                "Composition.entry": "https://ehr.hospital.example.com/fhir/AllergyIntolerance/12345,https://ehr.hospital.example.com/fhir/DiagnosticReport/67890",
+                "Composition.date": "2025-11-26T10:00:00Z",
+                "Composition.author": "{{physicianDid}}",
+                "Composition.title": "Allergies and Intolerances: hospital.example.com (2025-11-26T10:00:00Z)",
+                "Composition.type": "LOINC|60591-5"
+              }
+            },
+            "subject": {
+              "reference": "{{individualDid}}"
+            },
+            "date": "2025-11-26T10:00:00Z",
+            "author": [
+              {
+                "reference": "{{physicianDid}}"
+              }
+            ],
+            "title": "Allergies and Intolerances: hospital.example.com (2025-11-26T10:00:00Z)",
+            "type": {
+              "coding": [
+                {
+                  "system": "http://loinc.org",
+                  "code": "60591-5"
+                }
+              ]
+            },
+            "section": [
+              {
+                "title": "Allergies and Intolerances",
+                "code": {
+                  "coding": [
+                    {
+                      "system": "http://loinc.org",
+                      "code": "48765-2"
+                    }
+                  ]
+                },
+                "entry": [
+                  {
+                    "reference": "https://ehr.hospital.example.com/fhir/AllergyIntolerance/12345"
+                  },
+                  {
+                    "reference": "https://ehr.hospital.example.com/fhir/DiagnosticReport/67890"
+                  }
+                ]
+              }
+            ]
+          },
+          "request": {
+            "method": "POST",
+            "url": "individual/org.hl7.fhir.r4/Composition"
+          }
+        }
+      ]
+    }
+  },
+  "SMART_TOKEN_REQUEST": {
+    "jti": "smart-token-request-<test-id>",
+    "thid": "smart-token-thread-<test-id>",
+    "iss": "did:web:api.acme.org:employee:admin1@acme.org:device:<uuid>",
+    "aud": "did:web:api.acme.org",
+    "exp": 1678886460,
+    "iat": 1678886400,
+    "nbf": 1678886400,
+    "type": "application/json",
+    "body": {
+      "client_id": "did:web:api.acme.org:employee:admin1@acme.org:device:<uuid>",
+      "redirect_uri": "https://app.acme.org/callback",
+      "code_challenge": "b2MtY2hhbGxlbmdlLWJhc2U2NA",
+      "code_challenge_method": "S256",
+      "client_assertion": "<client-auth-jwt>",
+      "client_assertion_type": "private_key_jwt",
+      "acr_values": "urn:antifraud:acr:openid4vp:employee",
+      "vp_token": "<vp-jws-or-jsonld>",
+      "presentation_submission": {
+        "id": "ps-001",
+        "definition_id": "pd-001",
+        "descriptor_map": [
+          {
+            "id": "vp-credential",
+            "format": "jwt_vp",
+            "path": "$.vp_token"
+          }
+        ]
+      },
+      "expires_in": 300,
+      "token_type": "Bearer",
+      "sub": "did:web:api.acme.org:employee:doctor1@acme.org:ISCO-08|2211",
+      "purpose": "TREAT",
+      "scope": "patient/Composition.rs?subject={{individualDid}}&section=LOINC|48765-2 patient/Consent.cruds"
+    },
+    "meta": {
+      "jwe": {
+        "header": {
+          "typ": "application/didcomm-encrypted+json",
+          "cty": "JWS",
+          "enc": "A256GCM",
+          "alg": "ML-KEM-768",
+          "kid": "thumbprint-public-enc-key-recipient",
+          "skid": "thumbprint-public-enc-key-device"
+        }
+      },
+      "jws": {
+        "protected": {
+          "typ": "application/didcomm-signed+json",
+          "cty": "application/didcomm-plain+json",
+          "alg": "ML-DSA-44",
+          "kid": "thumbprint-public-sig-key-device"
+        }
+      }
+    }
+  }
+}

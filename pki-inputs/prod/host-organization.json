@@ -1,0 +1,13 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "legalName": "Fundación UNID",
+  "alternateName": "UNID - Europe Host Operator (Prod)",
+  "name": "FUNDACION UNID",
+  "taxID": "G02793479",
+  "url": "https://prod-eur-operator.unid.online",
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "ES"
+  }
+}

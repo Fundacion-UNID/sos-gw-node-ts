@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gdc-unid-node-ts
+spec:
+  replicas: 2
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: gdc-unid-node-ts
+  template:
+    metadata:
+      labels:
+        app: gdc-unid-node-ts
+    spec:
+      serviceAccountName: gdc-unid-node-ts-staging
+      containers:
+        - name: gdc-unid-node-ts
+          image: europe-west1-docker.pkg.dev/PROJECT_ID/gw-unid-staging/gdc-unid-node-ts:staging-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3300
+          envFrom:
+            - configMapRef:
+                name: gdc-unid-node-ts-staging-config
+            - secretRef:
+                name: gdc-unid-node-ts-staging-secret
+          readinessProbe:
+            httpGet:
+              path: /host/cds-EU/v1/test-network/.well-known/ping
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 4
+          livenessProbe:
+            httpGet:
+              path: /host/cds-EU/v1/test-network/.well-known/ping
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 4
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi

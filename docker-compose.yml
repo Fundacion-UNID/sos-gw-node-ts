@@ -1,0 +1,53 @@
+version: '3.8'
+
+networks:
+  test-network:
+    name: test-network
+
+services:
+  root-ca:
+    image: hyperledger/fabric-ca
+    container_name: root-ca
+    networks:
+      - test-network
+    ports:
+      - "7054:7054"
+      - "17054:17054"
+    environment:
+      - FABRIC_CA_SERVER_CA_NAME=root-ca
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=7054
+      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:17054
+      # Admin credentials loaded from .env
+      - FABRIC_CA_SERVER_ADMIN_USER=${ROOT_CA_ADMIN_USER}
+      - FABRIC_CA_SERVER_ADMIN_PASSWORD=${ROOT_CA_ADMIN_PASS}
+    volumes:
+      - ../../fabric-multicloud/fabric-ca-server-root:/etc/hyperledger/fabric-ca-server
+    command: >
+      sh -c 'fabric-ca-server start -b ${ROOT_CA_ADMIN_USER}:${ROOT_CA_ADMIN_PASS} --cfg.affiliations.allowremove'
+
+  ica:
+    image: hyperledger/fabric-ca
+    container_name: ica
+    networks:
+      - test-network
+    ports:
+      - "7055:7054"
+      - "17055:17055"
+    environment:
+      - FABRIC_CA_SERVER_CA_NAME=ica
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=7054
+      - FABRIC_CA_SERVER_OPERATIONS_LISTENADDRESS=0.0.0.0:17055
+      - FABRIC_CA_SERVER_CSR_HOSTS=ica
+      # Admin credentials loaded from .env
+      - FABRIC_CA_SERVER_ADMIN_USER=${ICA_ADMIN_USER}
+      - FABRIC_CA_SERVER_ADMIN_PASSWORD=${ICA_ADMIN_PASS}
+      # This service will enroll with the Root CA to establish the chain of trust
+      - FABRIC_CA_SERVER_INTERMEDIATE_TLS_CERTFILES=/etc/hyperledger/fabric-ca-server/ca-chain.pem
+    volumes:
+      - ../../fabric-multicloud/fabric-ca-server-ica:/etc/hyperledger/fabric-ca-server
+    command: >
+      sh -c 'fabric-ca-server start -b ${ICA_ADMIN_USER}:${ICA_ADMIN_PASS} -U https://${ROOT_CA_ADMIN_USER}:${ROOT_CA_ADMIN_PASS}@root-ca:7054'
+    depends_on:
+      - root-ca

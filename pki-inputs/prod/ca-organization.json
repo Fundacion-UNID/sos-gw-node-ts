@@ -1,0 +1,13 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "legalName": "Fundación UNID",
+  "alternateName": "UNID - Root Certificate Authority (Prod)",
+  "name": "FUNDACION UNID",
+  "taxID": "G02793479",
+  "url": "https://prod-root.unid.online",
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "ES"
+  }
+}

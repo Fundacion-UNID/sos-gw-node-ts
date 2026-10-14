@@ -1,0 +1,274 @@
+{
+    "$schema": "https://hyperledger.github.io/fabric-chaincode-node/main/api/contract-schema.json",
+    "contracts": {
+        "ConsentAccessContract": {
+            "name": "ConsentAccessContract",
+            "contractInstance": {
+                "name": "ConsentAccessContract",
+                "default": true
+            },
+            "transactions": [
+                {
+                    "name": "CreateConsentAccess",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "arg1",
+                            "description": "Argument 1",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "createConsentAccess",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "arg1",
+                            "description": "Argument 1",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "UpdateConsentAccess",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "arg1",
+                            "description": "Argument 1",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "updateConsentAccess",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "arg1",
+                            "description": "Argument 1",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "UpsertConsentAccess",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "arg1",
+                            "description": "Argument 1",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "upsertConsentAccess",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        },
+                        {
+                            "name": "arg1",
+                            "description": "Argument 1",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "ExistsConsentAccess",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "existsConsentAccess",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "ReadConsentAccess",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "readConsentAccess",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "GetConsentAccessHistory",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "getConsentAccessHistory",
+                    "tags": [
+                        "SUBMIT",
+                        "submitTx"
+                    ],
+                    "parameters": [
+                        {
+                            "name": "arg0",
+                            "description": "Argument 0",
+                            "schema": {
+                                "type": "string"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "info": {
+                "title": "",
+                "version": ""
+            }
+        },
+        "org.hyperledger.fabric": {
+            "name": "org.hyperledger.fabric",
+            "contractInstance": {
+                "name": "org.hyperledger.fabric"
+            },
+            "transactions": [
+                {
+                    "name": "GetMetadata"
+                }
+            ],
+            "info": {
+                "title": "",
+                "version": ""
+            }
+        }
+    },
+    "info": {
+        "version": "1.0.0",
+        "title": "consentaccess-sc"
+    },
+    "components": {
+        "schemas": {}
+    }
+}

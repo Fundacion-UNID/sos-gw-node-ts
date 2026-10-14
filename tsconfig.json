@@ -1,0 +1,39 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "./build",
+    "rootDir": "./src",
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "emitDeclarationOnly": false,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "gdc-common-utils-ts": ["node_modules/gdc-common-utils-ts/dist/index.d.ts"],
+      "gdc-common-utils-ts/constants": ["node_modules/gdc-common-utils-ts/dist/constants/index.d.ts"],
+      "gdc-common-utils-ts/*": ["node_modules/gdc-common-utils-ts/dist/*"]
+    },
+    "typeRoots": [
+      "./src/types",
+      "./node_modules/@types"
+    ],
+    "preserveSymlinks": true
+  },
+  "include": [
+    "./src/**/*.tsx",
+    "./src/**/*.ts"
+  ],
+  "exclude": [
+    "./build",
+    "node_modules",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "src/__tests__/**"
+  ]
+}

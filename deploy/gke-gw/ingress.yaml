@@ -1,0 +1,29 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: __GDC_RESOURCE_NAME__-tls
+  namespace: __K8S_NAMESPACE_GDC__
+spec:
+  domains: [__GDC_HOST__]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: __GDC_RESOURCE_NAME__
+  namespace: __K8S_NAMESPACE_GDC__
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.global-static-ip-name: __GDC_STATIC_IP_NAME__
+    networking.gke.io/managed-certificates: __GDC_RESOURCE_NAME__-tls
+spec:
+  rules:
+    - host: __GDC_HOST__
+      http:
+        paths:
+          - path: /*
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: __GDC_RESOURCE_NAME__
+                port: { number: 80 }
+

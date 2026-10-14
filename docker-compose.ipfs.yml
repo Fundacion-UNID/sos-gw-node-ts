@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  ipfs:
+    image: ipfs/kubo:v0.32.1
+    container_name: gwtemplate-ipfs
+    restart: unless-stopped
+    ports:
+      - '4001:4001'
+      - '5001:5001'
+      - '8080:8080'
+    volumes:
+      - gwtemplate-ipfs-data:/data/ipfs
+    healthcheck:
+      test: ['CMD-SHELL', 'ipfs id >/dev/null 2>&1']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  gwtemplate-ipfs-data:

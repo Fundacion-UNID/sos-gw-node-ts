@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: __GDC_RESOURCE_NAME__
+  namespace: __K8S_NAMESPACE_GDC__
+  labels:
+    app.kubernetes.io/name: __GDC_RESOURCE_NAME__
+    app.kubernetes.io/component: gateway
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: __GDC_RESOURCE_NAME__
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: __GDC_RESOURCE_NAME__
+        app.kubernetes.io/component: gateway
+    spec:
+      serviceAccountName: __GDC_RESOURCE_NAME__
+      containers:
+        - name: __GDC_RESOURCE_NAME__
+          image: __GDC_IMAGE__
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: __GDC_RESOURCE_NAME__-config
+            - secretRef:
+                name: __GDC_SECRET_NAME__
+          readinessProbe:
+            httpGet:
+              path: /host/ping
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /host/ping
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+

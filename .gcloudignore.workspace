@@ -1,0 +1,8 @@
+**
+!gdc-common-utils-ts/**
+!gdc-unid-node-ts/**
+gdc-unid-node-ts/node_modules/**
+gdc-unid-node-ts/build/**
+gdc-common-utils-ts/node_modules/**
+gdc-common-utils-ts/build/**
+.git/**

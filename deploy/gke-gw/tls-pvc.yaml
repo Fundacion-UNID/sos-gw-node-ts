@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: __GDC_RESOURCE_NAME__-caddy-data
+  namespace: __K8S_NAMESPACE_GDC__
+  labels:
+    app.kubernetes.io/name: __GDC_RESOURCE_NAME__
+    app.kubernetes.io/component: gateway-tls
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+

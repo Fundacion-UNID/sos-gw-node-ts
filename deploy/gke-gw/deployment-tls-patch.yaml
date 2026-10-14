@@ -1,0 +1,34 @@
+spec:
+  template:
+    spec:
+      volumes:
+        - name: caddy-data
+          persistentVolumeClaim:
+            claimName: __GDC_RESOURCE_NAME__-caddy-data
+      containers:
+        - name: caddy
+          image: __GDC_TLS_IMAGE__
+          imagePullPolicy: IfNotPresent
+          args:
+            - caddy
+            - reverse-proxy
+            - --from
+            - https://__GDC_TLS_HOST__
+            - --to
+            - 127.0.0.1:3000
+          ports:
+            - name: edge-http
+              containerPort: 80
+            - name: edge-https
+              containerPort: 443
+          volumeMounts:
+            - name: caddy-data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+

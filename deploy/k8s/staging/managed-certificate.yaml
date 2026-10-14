@@ -1,0 +1,7 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: gdc-unid-node-ts-staging-cert
+spec:
+  domains:
+    - gw-unid-staging.example.org

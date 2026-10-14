@@ -1,0 +1,53 @@
+{
+  "name": "consentaccess-sc",
+  "version": "1.0.0",
+  "description": "Smart contract for consent access rule bundles",
+  "main": "index.js",
+  "engines": {
+    "node": "^24.0.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "test": "nyc mocha --recursive",
+    "start": "set -x && fabric-chaincode-node start",
+    "build": "",
+    "build:watch": "",
+    "prepublishOnly": "npm run build",
+    "metadata": "set -x && fabric-chaincode-node metadata generate --file metadata.json",
+    "docker": "docker build -f ./Dockerfile -t consentaccess-sc .",
+    "package:caas": "npm run build && weft chaincode package caas --path . --label consentaccess-sc --address ${CHAINCODE_SERVER_ADDRESS} --archive consentaccess-sc-caas.tgz --quiet",
+    "package:k8s": "npm run build && weft chaincode package caas --path . --label consentaccess-sc --address ${CHAINCODE_SERVER_ADDRESS} --archive consentaccess-sc-caas.tgz --quiet",
+    "start:server-nontls": "set -x && fabric-chaincode-node server --chaincode-address=$CHAINCODE_SERVER_ADDRESS --chaincode-id=$CHAINCODE_ID",
+    "start:server-debug": "set -x && NODE_OPTIONS='--inspect=0.0.0.0:9229' fabric-chaincode-node server --chaincode-address=$CHAINCODE_SERVER_ADDRESS --chaincode-id=$CHAINCODE_ID",
+    "start:server": "set -x && fabric-chaincode-node server --chaincode-address=$CHAINCODE_SERVER_ADDRESS --chaincode-id=$CHAINCODE_ID --chaincode-tls-key-file=/hyperledger/privatekey.pem --chaincode-tls-client-cacert-file=/hyperledger/rootcert.pem --chaincode-tls-cert-file=/hyperledger/cert.pem"
+  },
+  "license": "Apache-2.0",
+  "dependencies": {
+    "fabric-contract-api": "^2.5.4",
+    "fabric-shim": "^2.5.4"
+  },
+  "devDependencies": {
+    "chai": "^4.5.0",
+    "chai-as-promised": "^7.1.2",
+    "eslint": "^9.28.0",
+    "mocha": "^10.8.2",
+    "nyc": "^15.1.0",
+    "sinon": "^18.0.0"
+  },
+  "nyc": {
+    "exclude": [
+      "coverage/**",
+      "test/**"
+    ],
+    "reporter": [
+      "text-summary",
+      "html"
+    ],
+    "all": true,
+    "check-coverage": true,
+    "statements": 100,
+    "branches": 100,
+    "functions": 100,
+    "lines": 100
+  }
+}

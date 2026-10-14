@@ -1,0 +1,29 @@
+{
+  "env": "test",
+  "kdf": "context",
+  "kdfConfig": "pki-kdf.json",
+  "rootCa": {
+    "json": "pki-inputs/test/ca-organization.json",
+    "seed": "1111111111111111111111111111111111111111111111111111111111111111",
+    "context": "trust/root-ca"
+  },
+  "ica": {
+    "json": "pki-inputs/test/ica-organization.json",
+    "caJson": "pki-inputs/test/ca-organization.json",
+    "seed": "2222222222222222222222222222222222222222222222222222222222222222",
+    "context": "trust/ica"
+  },
+  "host": {
+    "json": "pki-inputs/test/host-organization.json",
+    "icaJson": "pki-inputs/test/ica-organization.json",
+    "seed": "3333333333333333333333333333333333333333333333333333333333333333",
+    "context": "trust/host"
+  },
+  "members": [
+    {
+      "json": "pki-inputs/test/member-organization.json",
+      "seed": "4444444444444444444444444444444444444444444444444444444444444444",
+      "context": "trust/member/acme"
+    }
+  ]
+}

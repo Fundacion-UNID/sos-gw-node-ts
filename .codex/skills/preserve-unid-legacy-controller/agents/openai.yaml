@@ -1,0 +1,4 @@
+interface:
+  display_name: "Preserve UNID legacy controller"
+  short_description: "Keep the legacy first controller on tenant creation"
+  default_prompt: "Use $preserve-unid-legacy-controller to preserve or audit the UNID legacy first controller without exposing personal data."

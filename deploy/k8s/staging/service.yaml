@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gdc-unid-node-ts
+  annotations:
+    # Regional static address reserved in the staging GCP project.
+    networking.gke.io/load-balancer-ip-addresses: uhc-unid-gw-staging-ip
+    cloud.google.com/l4-rbs: "enabled"
+spec:
+  selector:
+    app: gdc-unid-node-ts
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+  # ClusterIP is internal-only and cannot expose /host/ping or /api-docs.
+  type: LoadBalancer
