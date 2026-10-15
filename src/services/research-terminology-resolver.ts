@@ -1,4 +1,5 @@
 import { getClaimValue } from '../utils/claims';
+import { MemoryTerminologyCache, TerminologyClient } from 'terminology-sdk-node-ts/terminology-client';
 
 export type ResolvedResearchTerminology = Readonly<{
   codeClaim: string;
@@ -59,6 +60,23 @@ const TERMINOLOGY_PROJECTIONS: Readonly<Record<string, TerminologyProjection>> =
   },
 });
 
+let terminologyClient: TerminologyClient | undefined;
+let terminologyConfigurationIdentity = '';
+
+function researchTerminologyClient(baseUrl: string, serviceToken: string): TerminologyClient {
+  const identity = `${baseUrl}\u0000${serviceToken}`;
+  if (!terminologyClient || identity !== terminologyConfigurationIdentity) {
+    terminologyClient = new TerminologyClient({
+      baseUrl,
+      ...(serviceToken ? { serviceToken } : {}),
+      cache: new MemoryTerminologyCache({ maxEntries: 2_000 }),
+      stableTtlMs: 24 * 60 * 60_000,
+    });
+    terminologyConfigurationIdentity = identity;
+  }
+  return terminologyClient;
+}
+
 /** Returns the canonical code claim governed by the exact-label service. */
 export function getResearchTerminologyCodeClaim(resourceType: string): string | undefined {
   return TERMINOLOGY_PROJECTIONS[String(resourceType || '').trim()]?.codeClaim;
@@ -93,41 +111,30 @@ export async function resolveResearchTerminologyLabels(input: Readonly<{
   if (!token) return undefined;
 
   const language = String(getClaimValue(input.claims, `${input.resourceType}.language`) || 'en').trim() || 'en';
-  const url = new URL(`${baseUrl}/v1/terminology/labels`);
-  url.search = new URLSearchParams({
-    sector: String(input.sector || '').trim(),
-    jurisdiction: String(input.jurisdiction || '').trim().toUpperCase(),
-    fhirVersion: 'R4',
-    resourceType: input.resourceType,
-    claim: projection.codeClaim,
-    system: token.system,
-    code: token.code,
-    language,
-  }).toString();
   const serviceToken = String(process.env.RESEARCH_TERMINOLOGY_SERVICE_TOKEN || '').trim();
-  const response = await fetch(url, {
-    headers: {
-      accept: 'application/vnd.api+json',
-      ...(serviceToken ? { authorization: `Bearer ${serviceToken}` } : {}),
-    },
-    signal: AbortSignal.timeout(5_000),
-  });
-  if (!response.ok) {
-    throw new Error(`Research terminology lookup failed with HTTP ${response.status}.`);
+  let labels;
+  try {
+    labels = await researchTerminologyClient(baseUrl, serviceToken).resolveCodeLabels({
+      sector: String(input.sector || '').trim(),
+      jurisdiction: String(input.jurisdiction || '').trim().toUpperCase(),
+      param: projection.codeClaim,
+      system: token.system,
+      code: token.code,
+      language,
+    });
+  } catch (error) {
+    const match = error instanceof Error ? /^terminology_http_(\d+)$/.exec(error.message) : undefined;
+    if (match) throw new Error(`Research terminology lookup failed with HTTP ${match[1]}.`);
+    throw error;
   }
-  const document = await response.json() as any;
-  const labels = document?.data?.attributes;
-  if (!labels?.text && !labels?.display) return undefined;
-  if (labels.system !== token.system || labels.code !== token.code) {
-    throw new Error('Research terminology response does not match the requested system|code.');
-  }
+  if (!labels) return undefined;
   return {
     ...projection,
     system: token.system,
     code: token.code,
     ...(labels.text ? { text: String(labels.text) } : {}),
     ...(labels.display ? { display: String(labels.display) } : {}),
-    ...(labels.textLanguage ? { textLanguage: String(labels.textLanguage) } : {}),
-    ...(labels.displayLanguage ? { displayLanguage: String(labels.displayLanguage) } : {}),
+    ...(labels.language ? { textLanguage: labels.language } : {}),
+    ...(labels.display ? { displayLanguage: 'en' } : {}),
   };
 }

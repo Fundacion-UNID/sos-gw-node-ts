@@ -13,14 +13,15 @@ describe('research terminology resolver', () => {
   });
 
   it('resolves trusted local and English labels from an exact system|code lookup', async () => {
+    let requests = 0;
     server = createServer((request, response) => {
+      requests += 1;
       const url = new URL(request.url || '/', 'http://localhost');
       expect(url.pathname).toBe('/v1/terminology/labels');
       expect(Object.fromEntries(url.searchParams)).toMatchObject({
         sector: 'animal-care',
         jurisdiction: 'ES',
         fhirVersion: 'R4',
-        resourceType: 'Observation',
         claim: 'Observation.code',
         system: 'http://loinc.org',
         code: '8310-5',
@@ -50,7 +51,7 @@ describe('research terminology resolver', () => {
     process.env.RESEARCH_TERMINOLOGY_BASE_URL = baseUrl;
     process.env.RESEARCH_TERMINOLOGY_SERVICE_TOKEN = 'local-service-token';
 
-    await expect(resolveResearchTerminologyLabels({
+    const input = {
       sector: 'animal-care',
       jurisdiction: 'ES',
       resourceType: 'Observation',
@@ -60,7 +61,8 @@ describe('research terminology resolver', () => {
         'Observation.code-text': 'texto no confiable',
         'Observation.code-display': 'untrusted display',
       },
-    })).resolves.toEqual({
+    };
+    await expect(resolveResearchTerminologyLabels(input)).resolves.toEqual({
       codeClaim: 'Observation.code',
       textClaim: 'Observation.code-text',
       displayClaim: 'Observation.code-display',
@@ -71,6 +73,8 @@ describe('research terminology resolver', () => {
       textLanguage: 'es',
       displayLanguage: 'en',
     });
+    await expect(resolveResearchTerminologyLabels(input)).resolves.toBeDefined();
+    expect(requests).toBe(1);
   });
 
   it('does not call a service or invent labels when no canonical code is present', async () => {
