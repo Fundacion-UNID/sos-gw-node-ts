@@ -14,7 +14,9 @@
       "gdc-sdk-client-ts": ["node_modules/gdc-sdk-client-ts/dist/index.d.ts"],
       "gdc-sdk-client-ts/*": ["node_modules/gdc-sdk-client-ts/dist/*"],
       "sos-data-utils-ts": ["node_modules/sos-data-utils-ts/dist/index.d.ts"],
-      "sos-data-utils-ts/*": ["node_modules/sos-data-utils-ts/dist/*"]
+      "sos-data-utils-ts/*": ["node_modules/sos-data-utils-ts/dist/*"],
+      "vet-sdk-core-ts": ["node_modules/vet-sdk-core-ts/dist/index.d.ts"],
+      "vet-sdk-core-ts/*": ["node_modules/vet-sdk-core-ts/dist/*"]
     },
     // Add test-specific types that shouldn't be in the global scope for the main app.
     "types": ["jest", "node"],

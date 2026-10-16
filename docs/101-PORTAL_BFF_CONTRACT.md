@@ -135,9 +135,10 @@ defined in [Host and tenant administration](HOST_AND_TENANT_ADMINISTRATION.md).
 
 Scheduling is split by operation, not profession title:
 
-- an organization controller configures owned Locations, HealthcareServices,
-  capacity policy, delegated Groups/roles and who may manage schedules;
-- an authorized scheduler manages Schedule, Slot, Appointment and
+- an organization controller manages the `org.schema.*` organization
+  directory/lifecycle and owned Locations, then delegates narrow actions with
+  FHIR Group membership and Consent;
+- an authorized employee manages HealthcareService, Schedule, Slot, Appointment and
   AppointmentResponse, including rescheduling and notifications;
 - an authorized care professional starts or participates in an Encounter when
   the authoritative Appointment reaches the governed transition;
@@ -150,6 +151,11 @@ pharmacist and pharmacy assistant remain localized role labels backed by
 governed role codes and capability assignments. Code must authorize narrow
 capabilities such as schedule management or Encounter participation, not a
 hardcoded list of job-name strings.
+
+Group membership and Consent are necessary governance inputs, not sufficient
+authorization in isolation. Every BFF operation also verifies the active
+wallet/DCR, routed tenant, current membership, requested purpose/action and any
+subject scope. Changing a portal route never changes those facts.
 
 ## Terminology boundary
 

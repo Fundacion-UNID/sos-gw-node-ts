@@ -12,7 +12,7 @@ The web applications are split by authority:
 | Portal family | Effective actor | Reusable scope | Product extension |
 | --- | --- | --- | --- |
 | Host and tenant administration | host controller/reviewer | applications, tenant admission, host lifecycle, service health and minimized observability | reviewer policy, legal evidence and host service configuration |
-| Organization administration | tenant controller | organization lifecycle, Locations, HealthcareServices, licences, workforce and delegated operational policy | sector roles, payment adapter and local policy |
+| Organization administration | tenant controller | organization lifecycle, Locations, licences, workforce, Groups, Consents and delegated operational policy | sector roles and local policy |
 | Workforce/professional | employee or professional role | authorized subject directory and capability-gated operations | veterinary, healthcare, emergency, insurance or research workflows |
 | Personal/customer | individual or personal controller | own cards, consents, relationships and data | PetChain, SOSChain or UHC channel experience |
 
@@ -57,10 +57,9 @@ host.services
 host.observability
 organization.overview
 organization.locations
-organization.services
 organization.licenses
 organization.workforce
-organization.scheduling-policy
+organization.delegations
 organization.lifecycle
 ```
 
@@ -87,28 +86,46 @@ administration BFF must reuse those high-level operations and add only the host
 or product adapters it enables. SOSChain Professional does not acquire these
 routes as a side effect.
 
-## Scheduling, Locations and Encounter
+## Controller and workforce resource boundary
 
-The organization controller owns configuration and delegation, not every
-booking action:
+Tenant administration uses `org.schema.*` flat claims for the organization
+directory and lifecycle, including Organization, Place/Location, Service,
+licence and workforce records. The two deliberate FHIR flat-claim exceptions
+inside that administration boundary are Group, for governed membership, and
+Consent, for delegated purposes and actions.
+
+Operational HL7 FHIR resources belong to the workforce portal. They include
+HealthcareService, Schedule, Slot, Appointment, AppointmentResponse, Task,
+Encounter, ChargeItem, Invoice and PaymentReconciliation. A tenant controller
+selects who may operate them through Group and Consent; controller authority by
+itself does not grant those operational mutations.
 
 | Capability | Typical authorized actor | FHIR responsibility |
 | --- | --- | --- |
-| `organization.location.manage` | tenant controller or explicitly delegated administrator | create/update owned Location and its service relationship |
-| `organization.service.manage` | tenant controller or delegated service administrator | configure HealthcareService and capacity policy |
-| `organization.schedule.manage` | delegated scheduler, medical/veterinary secretary or another authorized worker | Schedule and Slot changes |
-| `organization.appointment.manage` | delegated administrative/clinical worker | Appointment and AppointmentResponse, rescheduling and notification |
+| `organization.location.manage` | tenant controller | create/update the owned organization Location boundary |
+| `operations.service.manage` | employee in an authorized Group | configure HealthcareService offerings at an allowed Location |
+| `operations.schedule.manage` | scheduler, medical/veterinary secretary or another employee in an authorized Group | Schedule and Slot changes |
+| `operations.appointment.manage` | delegated administrative/clinical employee | Appointment and AppointmentResponse, rescheduling and notification |
 | `care.encounter.start` | clinician or another care role explicitly authorized by policy | idempotent fulfilled Appointment to Encounter transition |
 | `care.encounter.participate` | authorized clinical participant | Encounter participation and permitted clinical actions |
 
 The labels above are capability ids, not FHIR role codes or browser claims.
-The BFF derives effective capabilities from the opened wallet/DCR, governed
-role/Group assignment, organization and subject authorization.
+The BFF derives effective capabilities from the opened wallet/DCR, routed
+tenant, current Group membership, applicable Consent purpose/action and any
+required subject authorization. Consent records policy; it is never a
+standalone access token.
+
+For example, blood donation and plasma donation are two distinct
+HealthcareService offerings at the same Location. Each has its own Schedule
+and Slot series. Only employees whose current Group and Consent grant the
+corresponding service and scheduling actions may manage them.
 
 A veterinarian, physician, nurse, dentist or pharmacist may hold clinical and
 scheduling capabilities. An assistant or secretary may hold scheduling without
-Encounter authority. A controller can delegate operational work without giving
-the delegate tenant lifecycle, licence or host-review authority.
+Encounter authority. A controller can also be an employee, but must exercise
+an independently delegated employee capability to perform operational work.
+The controller role does not implicitly include scheduling, billing or
+Encounter authority.
 
 Changing availability reconciles affected Appointments and creates durable
 notifications; it must not silently cancel them. Starting care resolves the

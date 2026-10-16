@@ -3,7 +3,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import {
   buildVeterinaryResearchStudyGroupCreateEntry,
   buildVeterinaryResearchStudyReviewTeamGroupSearch,
-} from 'vet-sdk-core-ts';
+} from 'vet-sdk-core-ts/research-study';
 import {
   projectGroupPractitionerRoleMemberFlatClaimResources,
   projectGroupR5FlatClaimsResource,

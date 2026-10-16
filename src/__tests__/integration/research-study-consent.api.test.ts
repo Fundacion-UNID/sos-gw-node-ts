@@ -27,7 +27,7 @@ import { buildStableActorIdentifier } from 'gdc-common-utils-ts/utils/actor-iden
 import { ClaimConsent, ConsentDecisions, ConsentStatuses } from 'gdc-common-utils-ts/models/consent-rule';
 import type { Sector } from 'gdc-common-utils-ts/models/urlPath';
 import { projectResearchStudyR5SearchClaims } from 'vet-data-utils-ts';
-import { buildVeterinaryResearchStudyActiveConsentBatch } from 'vet-sdk-core-ts';
+import { buildVeterinaryResearchStudyActiveConsentBatch } from 'vet-sdk-core-ts/research-study';
 import {
   buildResearchStudyPartyProjectionId,
   buildResearchStudyPartySectionId,

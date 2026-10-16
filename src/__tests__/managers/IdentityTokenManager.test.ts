@@ -103,7 +103,7 @@ describe('IdentityTokenManager personal activation tenant binding', () => {
     });
 
     await expect(manager.process(buildJob('animal-tenant-1')))
-      .rejects.toThrow('tenant_id claim does not match the routed tenant.');
+      .rejects.toThrow('tenant_id claim does not match the route tenant.');
     expect(verifyAndConsumeActivationCode).not.toHaveBeenCalled();
   });
 
