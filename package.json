@@ -140,7 +140,7 @@
     "pg": "^8.16.3",
     "pkijs": "^3.2.5",
     "redis": "^5.10.0",
-    "sos-data-utils-ts": "0.6.12",
+    "sos-data-utils-ts": "0.6.13",
     "stripe": "^20.4.1",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
@@ -151,7 +151,7 @@
     "typescript": "^5.1.6",
     "uhc-sdk-core-ts": "^0.5.1",
     "uuid": "^14.0.1",
-    "vet-data-utils-ts": "0.8.6"
+    "vet-data-utils-ts": "0.8.7"
   },
   "devDependencies": {
     "@babel/core": "^7.28.4",
