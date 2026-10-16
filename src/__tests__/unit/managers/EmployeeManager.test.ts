@@ -119,6 +119,39 @@ describe('EmployeeManager', () => {
   });
 
   describe('Employee Creation (POST)', () => {
+    it('preserves Person.sameAs CSV and indexes every employee alias independently', async () => {
+      const professionalDid = 'did:web:professional.example.org:person:123';
+      const licenceAlias = 'urn:example:professional-licence:456';
+      const claims = {
+        ...testClaimsTenant1Receptionist1,
+        [ClaimsPersonSchemaorg.sameAs]: `${professionalDid}, ${licenceAlias}, ${professionalDid}`,
+      };
+      const job = testBaseJobForEmployeeClaims(claims, TENANT_ALTERNATE_NAME, TENANT_SECTOR);
+      mockVaultRepository.put.mockResolvedValue(true);
+      mockTenantsCacheManager.getTenantIdentifierUrn.mockResolvedValue(TENANT_URN);
+
+      await employeeManager.process(job);
+
+      const indexedAttributes = (mockKmsService.protectAttributesNameAndValue as any).mock.calls[1][0];
+      expect(indexedAttributes).toEqual(expect.arrayContaining([
+        { name: ClaimsPersonSchemaorg.sameAs, value: professionalDid, unique: false, type: 'string' },
+        { name: ClaimsPersonSchemaorg.sameAs, value: licenceAlias, unique: false, type: 'string' },
+      ]));
+      expect(indexedAttributes.filter(
+        (attribute: any) => attribute.name === ClaimsPersonSchemaorg.sameAs,
+      )).toHaveLength(2);
+
+      const docToProtect = mockKmsService.protectConfidentialData.mock.calls[0][0];
+      const employeeConfig = docToProtect.content as EntityConfig;
+      expect(employeeConfig.claims[ClaimsPersonSchemaorg.sameAs]).toBe(
+        `${professionalDid}, ${licenceAlias}, ${professionalDid}`,
+      );
+      expect(employeeConfig.didDocument?.alsoKnownAs).toEqual(expect.arrayContaining([
+        professionalDid,
+        licenceAlias,
+      ]));
+    });
+
     it('returns an Offer without creating the employee when no licensed seat exists', async () => {
       const job = testBaseJobForEmployeeClaims(testClaimsTenant1Receptionist1, TENANT_ALTERNATE_NAME, TENANT_SECTOR);
       mockTenantsCacheManager.getTenantIdentifierUrn.mockResolvedValue(TENANT_URN);

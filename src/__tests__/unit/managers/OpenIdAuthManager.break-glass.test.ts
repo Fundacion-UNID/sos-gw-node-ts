@@ -5,7 +5,7 @@ import { OpenIdAuthManager } from '../../../managers/OpenIdAuthManager';
 describe('OpenIdAuthManager break-glass SMART integration', () => {
   it('issues a short animal emergency token only after the authorizer records the exception', async () => {
     const actorDid = 'did:web:clinic.example:employee:vet@example.org:ISCO-08|2250';
-    const subjectDid = 'did:web:vetchain.example:card:vetchain:72409:0961510852611267';
+    const subjectDid = 'did:web:vetchain.example:card:vetchain:0009615:724090961510852611262';
     const vpToken = buildUnsignedProfessionalIdentityVpJwt({ clientId: actorDid, actorDid, role: 'ISCO-08|2250' });
     const authorize = jest.fn().mockResolvedValue({
       emergencyConsentId: 'emergency-consent-123',

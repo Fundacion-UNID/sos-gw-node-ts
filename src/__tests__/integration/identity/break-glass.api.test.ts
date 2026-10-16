@@ -61,7 +61,7 @@ describe('break-glass SMART route contract (integration)', () => {
           aud: 'did:web:gw.example',
           body: {
             sub: 'did:web:clinic.example:employee:vet:ISCO-08|2250',
-            scope: 'organization/Composition.rs?subject=did:web:vetchain.example:card:vetchain:72409:0961510852611267',
+            scope: 'organization/Composition.rs?subject=did:web:vetchain.example:card:vetchain:0009615:724090961510852611262',
             purpose: 'EMERGENCY',
             break_glass: breakGlass,
           },

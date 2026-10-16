@@ -1186,7 +1186,7 @@ describe('FamilyManager', () => {
     it('issues a phone-only controller seat with issuedToPhone and no invented email', async () => {
       const offerId = 'urn:example:offer:phone-controller';
       const controllerPhone = '+16045550123';
-      const subjectDid = 'did:web:beta.petchain.app:card:vetchain:12402:0009790246678991';
+      const subjectDid = 'did:web:beta.petchain.app:card:vetchain:0009615:124020009790246678991';
       const pending = buildExampleFamilyRegistrationContent({
         status: EntityLifecycleStatus.Pending,
         claims: {

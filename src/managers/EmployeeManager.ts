@@ -48,6 +48,7 @@ import type { IHostRuntime } from './IHostRuntime';
 import { buildOfferOrderIndexedAttributes } from '../utils/offer-order-read-model';
 import { buildSearchResponseEntries } from '../utils/didcomm-response';
 import { buildStableActorIdentifier } from 'gdc-common-utils-ts/utils/actor-identifier';
+import { normalizePublicAliasList } from 'gdc-common-utils-ts/utils/same-as';
 import type { ClinicalCreatorBinding } from 'gdc-common-utils-ts/utils/fhir-ips-creator-identity';
 import { getClinicalCreatorBindingsSectionId } from '../utils/clinical-creator-binding';
 import { canonicalizeBundleEntryMetadata } from '../utils/canonical-entry-metadata';
@@ -463,6 +464,7 @@ export class EmployeeManager {
       employeeUuid: employeeId,
       roleCode: normalizeCodeSystemAndValue(roleCode).split(/[:|]/).pop() || '',
     });
+    const employeeAliases = normalizePublicAliasList(claims[ClaimsPersonSchemaorg.sameAs]);
 
     // Create verification methods from the provided JWKs
     const verificationMethods: VerificationMethod[] = [
@@ -483,7 +485,7 @@ export class EmployeeManager {
     const employeeDidDocument: DidDocument = {
       '@context': 'https://www.w3.org/ns/did/v1',
       id: employeeUrn,
-      alsoKnownAs: [employeeAuthorizationUrn],
+      alsoKnownAs: Array.from(new Set([employeeAuthorizationUrn, ...employeeAliases])),
       verificationMethod: verificationMethods,
       authentication: [verificationMethods[0].id],
       keyAgreement: [verificationMethods[1].id],
@@ -531,6 +533,12 @@ export class EmployeeManager {
       { name: 'role', value: normalizeCodeSystemAndValue(roleCode), unique: false, type: 'token'},
       { name: 'kid', value: signerJwk.kid, unique: false, type: 'string'},
       { name: 'kid', value: encrypterJwk.kid, unique: false, type: 'string'},
+      ...employeeAliases.map((alias) => ({
+        name: ClaimsPersonSchemaorg.sameAs,
+        value: alias,
+        unique: false,
+        type: 'string',
+      } as ParameterData)),
     ];
     
     const protectedAttributes = await this.kmsService.protectAttributesNameAndValue(attributesToIndex, tenantVaultId);
