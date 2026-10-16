@@ -62,6 +62,19 @@ In SDK tests, a controlled virtual API may play the BFF role to exercise the
 same lifecycle against GW. That harness proves runtime integration; it is not
 the deployed portal BFF and owns no public product routes.
 
+## Provider-issued animal cards
+
+Every BFF that accepts an animal card validates the single canonical form
+`did:web:<provider-host>:card:vetchain:<speciesId7>:<cardNumber21>` through the
+shared data contract. The complete card number is never split into route
+parameters. The split 5+16 path is invalid.
+
+Only the issuing provider BFF implements
+`GET /card/vetchain/{speciesId7}/{cardNumber21}/did.json`. SOS GW stores and
+routes the validated subject locator but does not proxy that public DID route.
+Personal and professional BFFs retrieve cards through their authenticated
+subject-directory operation; controller BFFs expose no subject-card operation.
+
 ## Terminology client
 
 Create one module-level `TerminologyClient`. Its bounded cache stores candidate

@@ -1,3 +1,12 @@
+## Unreleased
+
+- Normalize regular employee `org.schema.Person.sameAs` CSV values, index each
+  alias independently and publish those employee-owned aliases in the employee
+  DID Document `alsoKnownAs` without conflating them with subject cards.
+- Align all portal BFF authorized-subject discovery on the shared
+  `sos-sdk-node-ts` Organization/License submit-and-poll contract, and document
+  multiple-controller relationships plus future explicit principal rotation.
+
 ## [2.0.0] - 2026-10-14
 
 - Start the public SOSCHAIN Gateway history from a clean, secret-free source
@@ -4460,6 +4469,10 @@
   `gwtemplate-node-ts`, `dataspace-ica-ts`, and `gdc-sdk-node-ts`.
 
 ## Unreleased
+
+- Document the neutral BFF mapping for subject-card directories and the sole
+  species-bound VetChain DID resolver. Controller portals expose no subject or
+  scheduling routes, and the removed split animal-card path has no alias.
 
 - Resolve signed host-registry tenant lifecycle requests against the exact tenant DCR vault encoded by the controller DID, while preserving host-scoped job routing and fail-closed fallback.
 

@@ -112,6 +112,72 @@ Clients must not expose a method merely because another portal implements it.
 Unsupported capability families fail closed and are absent from the capability
 manifest.
 
+## Subject-card and provider DID routes
+
+The neutral BFF contract is a required mapping target, not a deployed handler
+library automatically mounted by every portal. Each personal or professional
+portal owns its authenticated browser handler, but every such handler uses
+`SosGatewaySubjectDirectoryClient` from `sos-sdk-node-ts` for the same
+Organization/License search Bundles, gateway paths and submit/poll behavior.
+Host/controller portals do not expose subject-card routes.
+
+For an animal card, the only public identifier grammar is:
+
+```text
+did:web:<provider-host>:card:vetchain:<speciesId7>:<cardNumber21>
+```
+
+The complete 21-digit card number occupies one DID segment. The split 5+16
+path is invalid and has no compatibility alias.
+
+The issuing provider BFF, not SOS GW, resolves the public DID document at:
+
+```text
+GET /card/vetchain/{speciesId7}/{cardNumber21}/did.json
+```
+
+That public response contains the DID document only. Controller, contact,
+clinical and wallet data remain behind authenticated subject-directory and
+subject-scoped BFF operations. SOS GW keeps the provider-supplied DID as the
+subject card locator in canonical flat claims; it does not create a second
+public resolver route or infer species from card digits.
+
+Current portal adapters must publish an explicit mapping rather than claiming
+automatic template adoption:
+
+| Portal family | Subject/card handler | Neutral mapping |
+| --- | --- | --- |
+| Personal human/animal | portal-owned authenticated directory, such as `GET /api/cards` or `GET /api/subject` | subject/card directory |
+| Issuing animal provider | public `GET /card/vetchain/{speciesId7}/{cardNumber21}/did.json` | provider DID resolution |
+| Professional/workforce | authenticated authorized-subject directory | subject/card directory, read only until a narrow capability authorizes an action |
+| Host or organization controller | none | organization lifecycle and delegation only |
+
+Route names may differ by portal, but the capability, authorization and
+response contract may not. Browser-facing route names are the only permitted
+difference; BFF-to-GW directory routes are SDK-owned and identical. A portal
+that has not documented and tested its mapping is not yet conformant.
+
+`org.schema.Organization.sameAs` preserves the provider CSV on the individual
+organization while each non-empty normalized alias is stored as a separate
+protected indexed attribute. Exact lookup searches one alias and verifies that
+the returned CSV contains it. An employee's own aliases instead use
+`org.schema.Person.sameAs`; each is indexed independently and projected to the
+employee DID Document `alsoKnownAs`. A subject card must never be copied into
+the controller's `Person.sameAs` merely because that person owns or represents
+the subject.
+
+### Multiple controllers and future principal rotation
+
+A child or animal may have multiple active controllers. Each parent, guardian
+or responsible keeper requires a distinct `RelatedPerson` relationship and
+accepted licence/evidence; neither comma ordering nor shared contact fields
+establish authority. A future lifecycle operation may designate one active
+relationship as the principal administrative controller. Revocation must
+disable only that relationship/licence and its controller keys, then explicitly
+promote another eligible active relationship. The subject Organization, card
+DID and `Organization.sameAs` remain stable. Principal promotion is documented
+but is not implemented by the current directory operation.
+
 ## Organization lifecycle boundary
 
 The reusable controller flow is orchestration, not a wildcard gateway action:

@@ -71,8 +71,8 @@ describe('break-glass audit and controller notice', () => {
       actorOrganizationDid: 'did:web:clinic.example:organization:bn:704457076',
       requestingClientId: 'did:key:clinic-b-workstation', tokenAudience: 'did:web:beta-gw.vetchain.app',
       professionalRole: 'ISCO-08|2250',
-      subjectDid: 'did:web:vetchain.example:card:vetchain:72409:0961510852611267',
-      requestedScope: 'organization/Composition.rs?subject=did:web:vetchain.example:card:vetchain:72409:0961510852611267&section=allergies,medications',
+      subjectDid: 'did:web:vetchain.example:card:vetchain:0009615:724090961510852611262',
+      requestedScope: 'organization/Composition.rs?subject=did:web:vetchain.example:card:vetchain:0009615:724090961510852611262&section=allergies,medications',
       request: {
         incidentId: 'incident-123',
         subjectKind: 'animal',

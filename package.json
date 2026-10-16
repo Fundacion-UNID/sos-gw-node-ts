@@ -151,7 +151,7 @@
     "typescript": "^5.1.6",
     "uhc-sdk-core-ts": "^0.5.1",
     "uuid": "^14.0.1",
-    "vet-data-utils-ts": "0.8.5"
+    "vet-data-utils-ts": "0.8.6"
   },
   "devDependencies": {
     "@babel/core": "^7.28.4",
