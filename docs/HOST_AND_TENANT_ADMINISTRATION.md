@@ -162,3 +162,23 @@ fails closed independently.
 
 This sequence keeps deployed routes working and does not turn product ids,
 sectors, roles or screen names into authorization claims.
+
+## Independent verification matrices
+
+Do not make every portal change execute every actor journey. Keep these local
+Playwright gates independently runnable, with one worker per run:
+
+| Matrix | Required lifecycle |
+| --- | --- |
+| host controller | application review, tenant admission/rejection and host service health |
+| tenant controller | application, activation, authoritative status, suspend, re-enable, suspend and final revoke/purge without descendant-wide actions |
+| professional/employee | wallet/DCR activation plus only the capability families exercised by that role, such as service delivery, scheduling, care, research or billing |
+| personal/customer | own-card, relationship and consent journeys without workforce or tenant authority |
+
+The complete release gate invokes those matrices sequentially after their
+focused gates pass. A professional fixture may provision its tenant through a
+server helper, but that setup does not replace the controller UI lifecycle
+matrix. While VetChain still combines administration and professional screens,
+its tests remain an executable extraction reference; the standalone
+administration portal and the professional portals must own separate
+Playwright configurations after extraction.
