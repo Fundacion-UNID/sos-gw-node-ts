@@ -53,6 +53,7 @@ describe('VetChain local tenant bootstrap', () => {
     expect(smokeScript).toContain('ICA_URL_EXTERNAL_VALUE="$LOCAL_ICA_CONTAINER_URL"');
     expect(envScript).toContain('ICA_URL_EXTERNAL_VALUE');
     expect(envScript).toContain('ICA_URL_EXTERNAL=${ICA_URL_EXTERNAL_VALUE}');
+    expect(envScript).toContain('ICA_JURISDICTION=${HOST_JURISDICTION_VALUE}');
   });
 
   it('uses the generic local-network profile when a private local-network profile is absent', () => {

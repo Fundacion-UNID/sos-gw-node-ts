@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Keep the local-network ICA verification jurisdiction aligned with the host
+  route jurisdiction instead of inheriting the generic base profile value.
+
 - Normalize regular employee `org.schema.Person.sameAs` CSV values, index each
   alias independently and publish those employee-owned aliases in the employee
   DID Document `alsoKnownAs` without conflating them with subject cards.
