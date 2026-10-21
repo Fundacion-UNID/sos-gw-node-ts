@@ -6,6 +6,9 @@ import { extractHttpRequestDataAsJson } from '../../utils/http-parser';
 import { JobRequest } from 'gdc-common-utils-ts/models/confidential-job';
 import { IssueType } from 'gdc-common-utils-ts/models/issue';
 import { sendDidcommEarlyError } from '../../utils/didcomm-error-response';
+import { ConsoleLogger } from '../../loggers/ConsoleLogger';
+
+const logger = new ConsoleLogger();
 
 // Extend the Express Request type to include our custom property
 declare global {
@@ -42,6 +45,22 @@ export const parseCdsRequest = (req: Request, res: Response, next: NextFunction)
     // Attach the parsed data to the request object
     req.cdsRequest = cdsRequestData;
 
+    logger.info('CDS request accepted', {
+      event: 'gateway.request.accepted',
+      component: 'parseCdsRequest',
+      declaredAppId: readHeader(req, 'appid'),
+      declaredAppVersion: readHeader(req, 'appversion'),
+      applicationIdentityAssurance: 'caller-declared',
+      thid: cdsRequestData.content?.thid,
+      tenantId: cdsRequestData.tenantId,
+      jurisdiction: cdsRequestData.jurisdiction,
+      sector: cdsRequestData.sector,
+      section: cdsRequestData.section,
+      resourceType: cdsRequestData.resourceType,
+      action: cdsRequestData.action,
+      method: cdsRequestData.httpMethod,
+    });
+
     next();
   } catch (error: any) {
     return sendDidcommEarlyError(
@@ -53,3 +72,9 @@ export const parseCdsRequest = (req: Request, res: Response, next: NextFunction)
     );
   }
 };
+
+function readHeader(req: Request, name: string): string | undefined {
+  const value = req.headers[name];
+  if (Array.isArray(value)) return value[0]?.trim() || undefined;
+  return typeof value === 'string' ? value.trim() || undefined : undefined;
+}

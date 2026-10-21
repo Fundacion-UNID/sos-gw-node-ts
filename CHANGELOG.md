@@ -1,5 +1,12 @@
 ## Unreleased
 
+- Remove the deprecated HostingManager individual-registration shortcut that
+  bypassed Offer and Order. Individual Organization, Offer and Order jobs remain
+  routed exclusively through the existing FamilyManager lifecycle.
+- Log caller-declared portal application id/version and the safe routed request
+  dimensions at gateway ingress so cross-portal incompatibilities can be traced
+  without logging tokens or personal claims.
+
 - Keep the local-network ICA verification jurisdiction aligned with the host
   route jurisdiction instead of inheriting the generic base profile value.
 

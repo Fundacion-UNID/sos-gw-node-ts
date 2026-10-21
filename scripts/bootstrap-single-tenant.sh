@@ -12,7 +12,7 @@ if [[ -f "${LOCAL_FABRIC_ENV_FILE}" ]]; then
 fi
 
 BASE_URL="${BASE_URL:-http://localhost:3000}"
-HOST_AUTHORITY_BASE_URL="${HOST_AUTHORITY_BASE_URL:-$BASE_URL}"
+HOST_AUTHORITY_BASE_URL="${HOST_AUTHORITY_BASE_URL:-${HOST_DEPLOY_URL:-$BASE_URL}}"
 AUTH_BEARER="${AUTH_BEARER:-demo-token}"
 CONTENT_TYPE="${CONTENT_TYPE:-application/json}"
 JURISDICTION="${JURISDICTION:-CA-BC}"
@@ -29,7 +29,12 @@ if [[ "$NETWORK_MODE_NORMALIZED" == "local-network" || "$NETWORK_MODE_NORMALIZED
 elif [[ "$LOCAL_FABRIC_DEVNET_PRESENT" == 'true' ]]; then
   DEFAULT_HOST_NETWORK="local-network"
 fi
-HOST_REGISTRY_NETWORK="${HOST_REGISTRY_NETWORK:-$DEFAULT_HOST_NETWORK}"
+HOST_NETWORK="${HOST_NETWORK:-$DEFAULT_HOST_NETWORK}"
+HOST_REGISTRY_NETWORK="${HOST_REGISTRY_NETWORK:-$HOST_NETWORK}"
+if [[ "$HOST_NETWORK" != "$HOST_REGISTRY_NETWORK" ]]; then
+  echo "ERROR: HOST_NETWORK and HOST_REGISTRY_NETWORK must match." >&2
+  exit 2
+fi
 SECTOR="${SECTOR:-animal-care}"
 TENANT_ID="${TENANT_ID:-704457076}"
 ORGANIZATION_ID_TYPE="${ORGANIZATION_ID_TYPE:-BN}"
@@ -41,7 +46,7 @@ ADMIN_EMAIL="${ADMIN_EMAIL:-vetchain-host@connecthealth.info}"
 PERSON_OCCUPATION="${PERSON_OCCUPATION:-ISCO-08|1120}"
 EMPLOYEE_COUNT="${EMPLOYEE_COUNT:-2}"
 SERVICE_IDENTIFIER="${SERVICE_IDENTIFIER:-did:web:api-provider.example.com}"
-SERVICE_URL="${SERVICE_URL:-${BASE_URL/#http:/https:}}"
+SERVICE_URL="${SERVICE_URL:-$HOST_AUTHORITY_BASE_URL}"
 SERVICE_TYPE="${SERVICE_TYPE:-HostingService}"
 SERVICE_AREA_SERVED="${SERVICE_AREA_SERVED:-$JURISDICTION}"
 TERMS_OF_SERVICE="${TERMS_OF_SERVICE:-https://example.com/terms}"
@@ -143,8 +148,13 @@ org_payload_overrides="$(jq -n \
   } + (if $serviceType != "" then {
     "/body/data/0/resource/meta/claims/org.schema.Service.serviceType": $serviceType
   } else {} end)')"
-org_payload="$(render_example_payload ORGANIZATION_REGISTRATION_REQUEST "$org_payload_overrides")"
-org_payload="$(printf '%s' "$org_payload" | HOST_AUTHORITY_BASE_URL="$HOST_AUTHORITY_BASE_URL" node "$SCRIPT_DIR/build-host-authorization-proof.mjs")"
+if [[ -n "${LEGAL_ORGANIZATION_TRANSACTION_JSON:-}" ]]; then
+  org_payload="$(printf '%s' "$LEGAL_ORGANIZATION_TRANSACTION_JSON" | jq -c '.payload // error("missing canonical payload")')"
+  thid_org="$(printf '%s' "$org_payload" | jq -er '.thid // error("missing canonical payload thid")')"
+else
+  org_payload="$(render_example_payload ORGANIZATION_REGISTRATION_REQUEST "$org_payload_overrides")"
+  org_payload="$(printf '%s' "$org_payload" | HOST_AUTHORITY_BASE_URL="$HOST_AUTHORITY_BASE_URL" node "$SCRIPT_DIR/build-host-authorization-proof.mjs")"
+fi
 
 echo "[bootstrap] organization registration (tenantId=$TENANT_ID, ${ORGANIZATION_ID_TYPE}=$ORGANIZATION_ID_VALUE)"
 org_create="$(post_json "$BASE_URL/host/cds-$HOST_JURISDICTION/v1/$HOST_REGISTRY_NETWORK/registry/org.schema/Organization/_transaction" "$org_payload")"

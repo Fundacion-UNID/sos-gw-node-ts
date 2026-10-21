@@ -28,6 +28,13 @@ describe('VetChain local tenant bootstrap', () => {
     expect(script).not.toContain('/registry/org.schema/Organization/_batch-response"');
   });
 
+  it('accepts a canonical prebuilt legal Organization transaction without bypassing Offer and Order', () => {
+    expect(script).toContain('LEGAL_ORGANIZATION_TRANSACTION_JSON');
+    expect(script).toContain("jq -c '.payload // error(\"missing canonical payload\")'");
+    expect(script).toContain("thid_org=\"$(printf '%s' \"$org_payload\" | jq -er '.thid // error(\"missing canonical payload thid\")')\"");
+    expect(script).toContain('[bootstrap] order confirmation');
+  });
+
   it('overrides canonical Organization resource claims rather than ignored entry siblings', () => {
     expect(script).toContain('/body/data/0/resource/meta/claims/org.schema.Service.category');
     expect(script).not.toContain('/body/data/0/meta/claims/');
@@ -41,6 +48,17 @@ describe('VetChain local tenant bootstrap', () => {
     expect(proofBuilder).toContain("process.env.HOST_AUTHORITY_BASE_URL");
     expect(smokeScript).toContain('HOST_AUTHORITY_BASE_URL="http://localhost:${CONTAINER_PORT}"');
     expect(smokeScript).toContain('SERVICE_URL="http://localhost:${CONTAINER_PORT}"');
+  });
+
+  it('keeps the signed host network and registry route network aligned', () => {
+    expect(script).toContain('HOST_NETWORK="${HOST_NETWORK:-$DEFAULT_HOST_NETWORK}"');
+    expect(script).toContain('HOST_REGISTRY_NETWORK="${HOST_REGISTRY_NETWORK:-$HOST_NETWORK}"');
+    expect(script).toContain('HOST_NETWORK and HOST_REGISTRY_NETWORK must match');
+  });
+
+  it('uses the configured host authority as the default advertised service URL', () => {
+    expect(script).toContain('HOST_AUTHORITY_BASE_URL="${HOST_AUTHORITY_BASE_URL:-${HOST_DEPLOY_URL:-$BASE_URL}}"');
+    expect(script).toContain('SERVICE_URL="${SERVICE_URL:-$HOST_AUTHORITY_BASE_URL}"');
   });
 
   it('owns the local Connect ICA dependency and injects its container-reachable URL', () => {

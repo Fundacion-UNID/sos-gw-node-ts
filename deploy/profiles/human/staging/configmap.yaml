@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: uhc-gw-node-ts-staging-config
+  name: sos-gw-human-staging-config
 data:
   NODE_ENV: staging
   LOCAL_SERVICE_ROLE: HOST,ICA,CA

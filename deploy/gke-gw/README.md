@@ -84,7 +84,7 @@ Optional depending on runtime:
    or GKE control-plane endpoint as the public URL.
 4. Create namespace `test-gdc-v1` or similar.
 5. Create the secret named by `GDC_SECRET_NAME` (by default,
-   `gwtemplate-secret`; UHC uses `uhc-unid-gw-secret`).
+   `gwtemplate-secret`; the shared human profile uses `sos-gw-human-secret`).
 6. Render and apply these manifests.
 7. Optionally point `ICA_URL_EXTERNAL` at a public `dataspace-ica-ts` URL.
 8. Wait for the `LoadBalancer` Service to get the reserved public IP.

@@ -23,9 +23,6 @@ export function resolveKmsProvider(config: IServerConfig): KmsProvider {
   return 'memory';
 }
 
-/** @deprecated Use `resolveKmsProvider`. */
-export const resolveEnvelopeProvider = resolveKmsProvider;
-
 function assertProductionCustody(config: IServerConfig, provider: KmsProvider): void {
   if (config.nodeEnv !== 'production') return;
   if (provider === 'memory' || provider === 'local') {
