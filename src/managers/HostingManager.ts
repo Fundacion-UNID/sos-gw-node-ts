@@ -109,12 +109,6 @@ import {
   forwardOrganizationVerificationTransactionToIca as forwardOrganizationVerificationTransactionToIcaExternal,
 } from './hosting/ica-verification';
 import {
-  processIndividualOrganizationFlow as processIndividualOrganizationFlowExternal,
-  resolveTenantCollectionForIndividuals as resolveTenantCollectionForIndividualsExternal,
-  processIndividualOrganizationRegistrationEntry as processIndividualOrganizationRegistrationEntryExternal,
-  processIndividualOrganizationSearchEntry as processIndividualOrganizationSearchEntryExternal,
-} from './hosting/process-individual-organization';
-import {
   ActivationMaterial as ExternalActivationMaterial,
   ActivationParticipantMaterial as ExternalActivationParticipantMaterial,
   VpCredentialObject as ExternalVpCredentialObject,
@@ -196,7 +190,6 @@ import {
   ACTION_ENABLE,
   ACTION_PURGE,
   ACTION_STATUS,
-  SUBJECT_SECTION_INDIVIDUAL,
 } from '../constants/domain';
 import { toJwkThumbprintSha256Urn } from 'gdc-common-utils-ts/utils/jwk-thumbprint';
 import type { ICryptography } from 'gdc-common-utils-ts/interfaces/ICryptography';
@@ -1751,10 +1744,6 @@ export class HostingManager {
    * Handles Phase 1, Step 1: Provisional Registration.
    */
   private async processOrganizationRegistration(job: JobRequest, environment?: string, isBootstrap: boolean = false): Promise<IDecodedDidcommPayload> {
-    if (job.section === SUBJECT_SECTION_INDIVIDUAL && (job.action === '_batch' || job.action === '_search')) {
-      return this.processIndividualOrganizationFlow(job, environment);
-    }
-
     const jobEntries = job.content?.body?.data || [];
     const responseEntries: (BundleEntry | ErrorEntry)[] = [];
     for (const entry of jobEntries) {
@@ -1791,55 +1780,6 @@ export class HostingManager {
       exp: Math.floor(Date.now() / 1000) + 300,
       body: responseBundle,
     };
-  }
-
-  private async processIndividualOrganizationFlow(job: JobRequest, environment?: string): Promise<IDecodedDidcommPayload> {
-    return processIndividualOrganizationFlowExternal({
-      job,
-      environment,
-      apiBaseUrl: this.config.apiBaseUrl,
-      hostExternalDomain: this.config.hostExternalDomain,
-      tenantsCacheManager: this.tenantsCacheManager,
-      vaultRepository: this.vaultRepository,
-      kmsService: this.kmsService,
-      handleError: this.handleError.bind(this),
-      extractResources: this.extractResources.bind(this),
-    });
-  }
-
-  private async resolveTenantCollectionForIndividuals(tenantVaultId: string, createIfMissing: boolean): Promise<string> {
-    return resolveTenantCollectionForIndividualsExternal({
-      tenantVaultId,
-      createIfMissing,
-      tenantsCacheManager: this.tenantsCacheManager,
-      vaultRepository: this.vaultRepository,
-    });
-  }
-
-  private async processIndividualOrganizationRegistrationEntry(
-    job: JobRequest,
-    entry: BundleEntry,
-    environment?: string,
-  ): Promise<BundleEntry | ErrorEntry> {
-    return processIndividualOrganizationRegistrationEntryExternal({
-      job,
-      entry,
-      environment,
-      tenantsCacheManager: this.tenantsCacheManager,
-      vaultRepository: this.vaultRepository,
-      kmsService: this.kmsService,
-      extractResources: this.extractResources.bind(this),
-    });
-  }
-
-  private async processIndividualOrganizationSearchEntry(job: JobRequest, entry: BundleEntry): Promise<BundleEntry | ErrorEntry> {
-    return processIndividualOrganizationSearchEntryExternal({
-      job,
-      entry,
-      tenantsCacheManager: this.tenantsCacheManager,
-      vaultRepository: this.vaultRepository,
-      kmsService: this.kmsService,
-    });
   }
 
   /**

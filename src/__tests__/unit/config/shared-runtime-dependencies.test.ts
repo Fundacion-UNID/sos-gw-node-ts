@@ -16,8 +16,8 @@ describe('shared runtime dependency contract', () => {
 
     expect(packageJson.dependencies?.['gdc-common-utils-ts']).toBe('2.9.29');
     expect(packageJson.dependencies?.['fhir-data-utils-ts']).toBe('0.6.20');
-    expect(packageJson.dependencies?.['sos-data-utils-ts']).toBe('0.6.12');
-    expect(packageJson.dependencies?.['vet-data-utils-ts']).toBe('0.8.5');
+    expect(packageJson.dependencies?.['sos-data-utils-ts']).toBe('0.6.13');
+    expect(packageJson.dependencies?.['vet-data-utils-ts']).toBe('0.8.7');
     expect(packageJson.devDependencies?.['vet-sdk-core-ts']).toBe('0.7.1');
   });
 });

@@ -12,6 +12,20 @@ describe('shared SOS GW repository identity', () => {
     expect(readme).not.toMatch(new RegExp(`^#\\s+${historicalName}$`, 'imu'));
   });
 
+  it('deploys the human profile as the shared SOS gateway resource and image', async () => {
+    const profile = await readFile('deploy/profiles/human/staging/gke.config', 'utf8');
+    const configMap = await readFile('deploy/profiles/human/staging/configmap.yaml', 'utf8');
+
+    expect(profile).toContain('GDC_RESOURCE_NAME=sos-gw-human');
+    expect(profile).toContain('GDC_SECRET_NAME=sos-gw-human-secret');
+    expect(profile).toContain('/sos-gw-node-ts');
+    expect(profile).not.toContain('/gdc-unid-node-ts');
+    expect(profile).not.toContain('/uhc-gw-node-ts');
+    expect(profile).not.toContain('HOST_LEGACY_PHYSICAL_COLLECTION');
+    expect(configMap).toContain('name: sos-gw-human-staging-config');
+    expect(configMap).not.toContain('name: uhc-gw-node-ts-staging-config');
+  });
+
   it('gives every repository test layer the eight-gigabyte heap required by the full gate', async () => {
     const packageJson = JSON.parse(await readFile('package.json', 'utf8')) as {
       scripts?: Record<string, string>;

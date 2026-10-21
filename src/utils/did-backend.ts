@@ -257,21 +257,6 @@ export function applyLegacyX509Metadata(
 }
 
 /**
- * @deprecated
- * This legacy helper generated service IDs in the form `version:sector:section:format[:resourceType]`.
- *
- * Service identifiers are now standardized to DID Document fragments of the form:
- * `#<section>:<format>:<resourceType>:<action>` (see `src/crypto-ts/utils/did.ts`).
- */
-export const createDidServiceIdBase = () => {
-  throw new Error(
-    'createDidServiceIdBase is deprecated. Use generateServiceId(selector) with the `#section:format:resourceType:action` convention.'
-  );
-};
-
-
-
-/**
  * Converts a did:web identifier into a full HTTPS or HTTP base URL.
  * It correctly decodes percent-encoded ports for local development.
  * @param did The did:web string (e.g., 'did:web:example.com' or 'did:web:localhost%3A3000').
