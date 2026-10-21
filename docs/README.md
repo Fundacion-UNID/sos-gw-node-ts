@@ -16,12 +16,13 @@ foundation's original design or version-specific reference.
 1. [Architecture](architecture.md)
 2. [BFF beginner contract](101-PORTAL_BFF_CONTRACT.md)
 3. [Host and tenant administration](HOST_AND_TENANT_ADMINISTRATION.md)
-4. [BFF integration profile](bff-integration.md)
-5. [BFF Node runtime integration](BFF_NODE_RUNTIME.md)
-6. [Getting started](getting-started.md)
-7. [API and interoperability](api-and-interoperability.md)
-8. [Security and deployment](security-and-deployment.md)
-9. [Upstream projects and history](upstream-and-history.md)
+4. [Portal and demo deployment scope](PORTAL_DEPLOYMENT_SCOPE.md)
+5. [BFF integration profile](bff-integration.md)
+6. [BFF Node runtime integration](BFF_NODE_RUNTIME.md)
+7. [Getting started](getting-started.md)
+8. [API and interoperability](api-and-interoperability.md)
+9. [Security and deployment](security-and-deployment.md)
+10. [Upstream projects and history](upstream-and-history.md)
 
 ## Sources of truth
 
