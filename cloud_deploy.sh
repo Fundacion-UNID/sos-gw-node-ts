@@ -370,13 +370,16 @@ deploy_gke() {
 
   source_env_file "$config_file"
 
+  GKE_LOCATION="${GKE_LOCATION:-$GCP_REGION}"
+  export GKE_LOCATION
+
   validate_required_bootstrap_sectors
   validate_persistent_gw_providers
 
   GDC_IMAGE="$(resolve_versioned_image "${GDC_IMAGE:-}" "${GDC_IMAGE_TAG:-}" "latest,demo")"
   export GDC_IMAGE
   local required_vars=(
-    GCP_PROJECT_ID GCP_REGION GKE_CLUSTER
+    GCP_PROJECT_ID GCP_REGION GKE_CLUSTER GKE_LOCATION
     K8S_NAMESPACE_GDC GDC_IMAGE GDC_PUBLIC_URL GDC_STATIC_IP_NAME GDC_GSA_EMAIL
   )
   local var_name
@@ -398,6 +401,7 @@ deploy_gke() {
   echo "  Project ID:         $GCP_PROJECT_ID"
   echo "  Region:             $GCP_REGION"
   echo "  Cluster:            $GKE_CLUSTER"
+  echo "  Cluster location:   $GKE_LOCATION"
   echo "  Namespace:          $K8S_NAMESPACE_GDC"
   echo "  Image:              $GDC_IMAGE"
   echo "  Public URL:         $GDC_PUBLIC_URL"
@@ -429,7 +433,7 @@ deploy_gke() {
   echo "✅ Deploying immutable digest: ${GDC_IMAGE}"
 
   echo "⚙️  Fetching GKE credentials for cluster: $GKE_CLUSTER"
-  gcloud container clusters get-credentials "$GKE_CLUSTER" --region "$GCP_REGION"
+  gcloud container clusters get-credentials "$GKE_CLUSTER" --location "$GKE_LOCATION"
 
   echo "⚙️  Applying GW GKE manifests..."
   bash "$SCRIPT_DIR/scripts/deploy-gke-gw.sh"

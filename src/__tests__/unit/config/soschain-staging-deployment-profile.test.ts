@@ -39,6 +39,8 @@ const readExample = (name: string): string =>
   readFileSync(resolve(process.cwd(), EXAMPLE_DIRECTORY, name), 'utf8');
 const readGenericStaging = (): string =>
   readFileSync(resolve(process.cwd(), 'env.staging.example'), 'utf8');
+const readDeploymentEntrypoint = (): string =>
+  readFileSync(resolve(process.cwd(), 'cloud_deploy.sh'), 'utf8');
 
 describe('public SOSChain staging deployment examples', () => {
   it('uses placeholders for target-specific GKE assignments', () => {
@@ -68,6 +70,24 @@ describe('public SOSChain staging deployment examples', () => {
     expect(target).toContain('GDC_PUBLIC_URL=https://replace-with-staging-gateway-host');
     expect(target).toContain('GDC_GSA_EMAIL=replace-with-service-account@replace-with-gcp-project-id.iam.gserviceaccount.com');
     expect(target).toContain('LEDGER_MSP_ID=replace-with-staging-msp-id');
+  });
+
+  it('runs the shared SOS gateway behind one cluster gateway for both UNID research sectors', () => {
+    const target = readExample('gke.config.example');
+
+    expect(target).toContain('GDC_SERVICE_TYPE=ClusterIP');
+    expect(target).toContain('GDC_TLS_SIDECAR_ENABLED=false');
+    expect(target).toContain('GDC_REQUIRED_SECTORS=onehealth-research,animal-research');
+    expect(target).toContain('ALLOWED_SECTORS=onehealth-research,animal-research');
+  });
+
+  it('keeps the Artifact Registry region separate from a zonal GKE location', () => {
+    const target = readExample('gke.config.example');
+    const deployer = readDeploymentEntrypoint();
+
+    expect(target).toContain('GKE_LOCATION=replace-with-staging-cluster-location');
+    expect(deployer).toContain('GKE_LOCATION="${GKE_LOCATION:-$GCP_REGION}"');
+    expect(deployer).toContain('get-credentials "$GKE_CLUSTER" --location "$GKE_LOCATION"');
   });
 
   it('documents persistent staging providers without publishing their resource names', () => {
