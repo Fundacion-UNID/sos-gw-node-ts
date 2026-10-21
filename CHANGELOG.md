@@ -2,7 +2,9 @@
 
 - Define the shared SOSChain staging profile as one ClusterIP gateway serving
   `onehealth-research` and `animal-research` behind the cluster's shared Gateway,
-  and allow zonal GKE locations to differ from the Artifact Registry region.
+  allow zonal GKE locations to differ from the Artifact Registry region, and
+  preserve an existing canonical host DID while a replacement hostname is
+  validated.
 - Remove the deprecated HostingManager individual-registration shortcut that
   bypassed Offer and Order. Individual Organization, Offer and Order jobs remain
   routed exclusively through the existing FamilyManager lifecycle.

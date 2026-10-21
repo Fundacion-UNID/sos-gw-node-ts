@@ -41,6 +41,10 @@ const readGenericStaging = (): string =>
   readFileSync(resolve(process.cwd(), 'env.staging.example'), 'utf8');
 const readDeploymentEntrypoint = (): string =>
   readFileSync(resolve(process.cwd(), 'cloud_deploy.sh'), 'utf8');
+const readGkeConfigMap = (): string =>
+  readFileSync(resolve(process.cwd(), 'deploy/gke-gw/configmap.yaml'), 'utf8');
+const readGkeDeployer = (): string =>
+  readFileSync(resolve(process.cwd(), 'scripts/deploy-gke-gw.sh'), 'utf8');
 
 describe('public SOSChain staging deployment examples', () => {
   it('uses placeholders for target-specific GKE assignments', () => {
@@ -88,6 +92,15 @@ describe('public SOSChain staging deployment examples', () => {
     expect(target).toContain('GKE_LOCATION=replace-with-staging-cluster-location');
     expect(deployer).toContain('GKE_LOCATION="${GKE_LOCATION:-$GCP_REGION}"');
     expect(deployer).toContain('get-credentials "$GKE_CLUSTER" --location "$GKE_LOCATION"');
+  });
+
+  it('can preserve the canonical host DID while a new gateway hostname is validated', () => {
+    const configMap = readGkeConfigMap();
+    const deployer = readGkeDeployer();
+
+    expect(configMap).toContain('HOST_PUBLIC_URL: "__HOST_PUBLIC_URL__"');
+    expect(deployer).toContain('"HOST_PUBLIC_URL=${GDC_PUBLIC_URL}"');
+    expect(deployer).toContain('s|__HOST_PUBLIC_URL__|${HOST_PUBLIC_URL}|g');
   });
 
   it('documents persistent staging providers without publishing their resource names', () => {
