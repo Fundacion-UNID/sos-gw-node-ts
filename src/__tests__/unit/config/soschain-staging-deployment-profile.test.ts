@@ -103,6 +103,14 @@ describe('public SOSChain staging deployment examples', () => {
     expect(deployer).toContain('s|__HOST_PUBLIC_URL__|${HOST_PUBLIC_URL}|g');
   });
 
+  it('enables the canonical DIDComm plaintext media type for the shared SDK in compat staging', () => {
+    const deployer = readGkeDeployer();
+
+    expect(deployer).toContain('"SECURITY_MODE=compat"');
+    expect(deployer).toContain('"DIDCOMM_PLAIN=true"');
+    expect(deployer).toContain('"DIDCOMM_LEGACY_PLAINTEXT_MEDIA_TYPE=false"');
+  });
+
   it('documents persistent staging providers without publishing their resource names', () => {
     const runtime = readGenericStaging();
 
