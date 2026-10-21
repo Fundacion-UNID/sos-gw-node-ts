@@ -73,7 +73,7 @@ const swaggerDefinition = {
     },
     {
       name: '8.7 Care Continuity and SOS Work',
-      description: 'Persist and search claims-first Encounter, ServiceRequest, triage Task and CommunicationRequest work records.',
+      description: 'Persist and search claims-first Encounter, ServiceRequest, triage Task, CommunicationRequest and organization DocumentReference work records.',
     },
     {
       name: '8.8 Research Study Administration',

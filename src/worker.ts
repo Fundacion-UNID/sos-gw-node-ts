@@ -131,7 +131,9 @@ export class Worker {
         case 'DocumentReference':
           manager = job.section === SUBJECT_SECTION_INDIVIDUAL && job.format === 'pdf' && job.action === '_create'
             ? this.managers.familyManager
-            : this.managers.documentReferenceManager;
+            : job.section === 'organization' && job.format === 'org.hl7.fhir.r5'
+              ? this.managers.organizationDocumentReferenceManager
+              : this.managers.documentReferenceManager;
           break;
         case 'Document':
           manager = job.section === 'did' && job.format === 'document'

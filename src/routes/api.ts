@@ -2727,7 +2727,8 @@ export function createApiRouter(
    *       but cannot choose it. A stale `ifMatch` returns 412 without writing.
    *       ServiceRequest records demand; Task records the
    *       separate operational triage assignment. CommunicationRequest records
-   *       governed intent and never proves delivery.
+   *       governed intent and never proves delivery. DocumentReference stores
+   *       the organization-authored payload or attachment without indexing bytes.
    *     parameters:
    *       - $ref: '#/components/parameters/AppId'
    *       - $ref: '#/components/parameters/AppVersion'
@@ -2737,7 +2738,7 @@ export function createApiRouter(
    *       - name: careResourceType
    *         in: path
    *         required: true
-   *         schema: { type: string, enum: [Encounter, ServiceRequest, Task, CommunicationRequest] }
+   *         schema: { type: string, enum: [Encounter, ServiceRequest, Task, CommunicationRequest, DocumentReference] }
    *     security: [{ BearerAuth: [] }]
    *     requestBody:
    *       required: true
@@ -2762,7 +2763,7 @@ export function createApiRouter(
    *       - name: careResourceType
    *         in: path
    *         required: true
-   *         schema: { type: string, enum: [Encounter, ServiceRequest, Task, CommunicationRequest] }
+   *         schema: { type: string, enum: [Encounter, ServiceRequest, Task, CommunicationRequest, DocumentReference] }
    *     requestBody:
    *       required: true
    *       content:
@@ -2784,7 +2785,7 @@ export function createApiRouter(
    *       - name: careResourceType
    *         in: path
    *         required: true
-   *         schema: { type: string, enum: [Encounter, ServiceRequest, Task, CommunicationRequest] }
+   *         schema: { type: string, enum: [Encounter, ServiceRequest, Task, CommunicationRequest, DocumentReference] }
    *     security: [{ BearerAuth: [] }]
    *     requestBody:
    *       required: true
@@ -2807,7 +2808,7 @@ export function createApiRouter(
    *       - name: careResourceType
    *         in: path
    *         required: true
-   *         schema: { type: string, enum: [Encounter, ServiceRequest, Task, CommunicationRequest] }
+   *         schema: { type: string, enum: [Encounter, ServiceRequest, Task, CommunicationRequest, DocumentReference] }
    *     requestBody:
    *       required: true
    *       content:

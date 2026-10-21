@@ -71,6 +71,9 @@ export interface IDiscoveryTenantRegistry {
    */
   getTenantSector(vaultId: string): Promise<Sector | undefined>;
 
+  /** Returns the public jurisdiction used to validate and label datasets. */
+  getTenantJurisdiction(vaultId: string): Promise<string | undefined>;
+
   /**
    * Returns whether public discovery/publication is operational for the tenant.
    */

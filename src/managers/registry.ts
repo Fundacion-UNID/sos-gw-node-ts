@@ -64,6 +64,7 @@ export interface ManagerRegistry {
   compositionManager?: IJobProcessor;
   twinCompositionManager?: IJobProcessor;
   documentReferenceManager?: IJobProcessor;
+  organizationDocumentReferenceManager?: IJobProcessor;
   communicationManager?: IJobProcessor;
   subscriptionManager?: ISubscriptionProcessor;
   deviceRegistrationManager?: IJobProcessor;

@@ -41,6 +41,9 @@ import { IKmsService } from '../gdc-backend-utils-node/models/IKmsService';
 import { ILogger } from '../loggers/ILogger';
 import type { IVaultRepository } from '../database/repositories/vault/vault.repository';
 import { TenantStatusService } from '../services/TenantStatusService';
+import { CommunicationRequestClaim, DocumentReferenceClaim } from 'fhir-data-utils-ts/claims';
+import { PublicAlertOperationalClaim } from 'sos-data-utils-ts/public-notifications';
+import { readClaimsOnlyContent, type FlatClaims } from '../utils/fhir-flat-claims';
 const STATUS_LIST_BITS = 16384;
 const STATUS_LIST_PURPOSE = 'revocation' as const;
 const STATUS_LIST_INDEX = 0;
@@ -1355,6 +1358,84 @@ export function createDiscoveryRouter(
       providers,
       hostingOperators: [hostMatch],
     });
+  });
+
+  /**
+   * Public, read-only projection of active dataset notifications. The caller
+   * supplies topic names only; subscriber identities and delivery preferences
+   * remain in the consuming BFF and never enter SOS Gateway persistence.
+   */
+  router.post('/api/public-notifications/search', async (req, res) => {
+    if (!(await isDiscoveryPublicationOperational('host'))) {
+      return res.status(503).type('text').send('Service Unavailable');
+    }
+    const hostDid = await tenantsCacheManager.getDidDocument('host');
+    if (!hostDid?.id) return res.status(503).type('text').send('Service Unavailable');
+    const datasetNames = Array.from(new Set((Array.isArray(req.body?.datasetNames) ? req.body.datasetNames : [])
+      .map((value: unknown) => String(value || '').trim().toLowerCase())
+      .filter((value: string) => /^[a-z0-9-]+(?:_[a-z0-9-]+)+$/.test(value)))) as string[];
+    if (!datasetNames.length || datasetNames.length > 50) {
+      return res.status(400).json({ error: 'datasetNames must contain between 1 and 50 valid public topics.' });
+    }
+    const requested = new Set(datasetNames);
+    const notifications: any[] = [];
+    for (const tenant of await tenantsCacheManager.listAutodiscoverableTenants()) {
+      const tenantId = String(tenant?.claims?.[ClaimsOrganizationSchemaorg.alternateName] || '').trim();
+      const sector = parseCategory(getTenantServiceClaim(tenant, ClaimsServiceSchemaorg.category));
+      if (!tenantId || !sector) continue;
+      const vaultId = getTenantVaultId(sector, tenantId);
+      const collectionName = String(tenant?.collectionName || await tenantsCacheManager.getCollectionName(vaultId) || '');
+      if (!collectionName) continue;
+      const tenantJurisdiction = String(await tenantsCacheManager.getTenantJurisdiction(vaultId) || '').toUpperCase();
+      const records = await vaultRepository.listContainersInSection<import('gdc-common-utils-ts/models/confidential-storage').ConfidentialStorageDoc>(collectionName, 'care-communication-requests');
+      const documentRecords = await vaultRepository.listContainersInSection<import('gdc-common-utils-ts/models/confidential-storage').ConfidentialStorageDoc>(collectionName, 'organization-document-references');
+      const documents = new Map<string, FlatClaims>();
+      for (const record of documentRecords) {
+        try {
+          const content = await kmsService.unprotectConfidentialData<any>(record, vaultId);
+          const claims = readClaimsOnlyContent(content);
+          if (claims) documents.set(record.id, claims);
+        } catch { continue; }
+      }
+      for (const record of records) {
+        try {
+          const content = await kmsService.unprotectConfidentialData<any>(record, vaultId);
+          const claims = readClaimsOnlyContent(content);
+          if (!claims) continue;
+          const one = (name: string) => {
+            const value = claims[name];
+            const values = (Array.isArray(value) ? value : [value]).map(String).map(item => item.trim()).filter(Boolean);
+            return values.length === 1 ? values[0] : '';
+          };
+          const many = (name: string) => (Array.isArray(claims[name]) ? claims[name] as unknown[] : claims[name] === undefined ? [] : [claims[name]]).map(String);
+          const datasetName = one(PublicAlertOperationalClaim.DatasetName).toLowerCase();
+          const validUntil = one(CommunicationRequestClaim.OccurrencePeriodEnd);
+          if (!requested.has(datasetName) || one(CommunicationRequestClaim.Status) !== 'active' || Date.parse(validUntil) <= Date.now()) continue;
+          const payloadReference = one(CommunicationRequestClaim.PayloadReference);
+          const payloadClaims = documents.get(payloadReference.replace(/^DocumentReference\//u, ''));
+          const rawPayloadContentType = payloadClaims?.[DocumentReferenceClaim.ContentType];
+          const payloadContentType = String(Array.isArray(rawPayloadContentType) ? rawPayloadContentType[0] || '' : rawPayloadContentType || '').trim();
+          const payloadData = Array.isArray(payloadClaims?.[DocumentReferenceClaim.ContentData])
+            ? String(payloadClaims?.[DocumentReferenceClaim.ContentData]?.[0] || '')
+            : String(payloadClaims?.[DocumentReferenceClaim.ContentData] || '');
+          if (payloadContentType !== 'text/markdown' || !payloadData) continue;
+          notifications.push({
+            notificationId: record.id, datasetName,
+            issuerReference: one(CommunicationRequestClaim.InformationProvider),
+            issuerName: String(tenant?.claims?.[ClaimsOrganizationSchemaorg.name] || tenantId),
+            subject: one(CommunicationRequestClaim.Note),
+            bodyMarkdown: Buffer.from(payloadData, 'base64').toString('utf8'),
+            attachmentReferences: many(CommunicationRequestClaim.About),
+            locations: [tenantJurisdiction].filter(Boolean),
+            publishedAt: one(CommunicationRequestClaim.AuthoredOn), validUntil,
+          });
+        } catch {
+          continue;
+        }
+      }
+    }
+    notifications.sort((left, right) => String(right.publishedAt).localeCompare(String(left.publishedAt)));
+    return res.json({ notifications });
   });
 
   router.get(buildGwCatalogArtifactPath({

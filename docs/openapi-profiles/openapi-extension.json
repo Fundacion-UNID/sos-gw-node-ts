@@ -4,7 +4,7 @@
     "title": "Gateway API - EXTENSIONS",
     "version": "1.0.3",
     "description": "Extension profile including non-core and vertical-specific capabilities on top of core and compat.",
-    "x-profile-generated-at": "2026-10-21T03:35:19.086Z",
+    "x-profile-generated-at": "2026-10-21T08:59:53.938Z",
     "x-profile-name": "extension"
   },
   "servers": [],
@@ -76,7 +76,7 @@
     },
     {
       "name": "8.7 Care Continuity and SOS Work",
-      "description": "Persist and search claims-first Encounter, ServiceRequest, triage Task and CommunicationRequest work records."
+      "description": "Persist and search claims-first Encounter, ServiceRequest, triage Task, CommunicationRequest and organization DocumentReference work records."
     },
     {
       "name": "8.8 Research Study Administration",
@@ -6216,7 +6216,7 @@
           "8.7 Care Continuity and SOS Work"
         ],
         "summary": "Create or replace a care-continuity work resource",
-        "description": "Accepts only `{resourceType,id,meta.claims}` for Encounter,\nServiceRequest, Task or CommunicationRequest. Claims are normalized\nagainst the resource-specific FHIR R5 SearchParameter catalogue,\nencrypted as `{claims}`, and indexed with protected names and values.\nNative FHIR fields and unknown claims fail before persistence.\nRepeating an identical POST is idempotent; the same id with different\nclaims requires PUT plus the weak ETag returned by the preceding\nread. GW owns `<ResourceType>.meta.versionId`; clients may echo it\nbut cannot choose it. A stale `ifMatch` returns 412 without writing.\nServiceRequest records demand; Task records the\nseparate operational triage assignment. CommunicationRequest records\ngoverned intent and never proves delivery.\n",
+        "description": "Accepts only `{resourceType,id,meta.claims}` for Encounter,\nServiceRequest, Task or CommunicationRequest. Claims are normalized\nagainst the resource-specific FHIR R5 SearchParameter catalogue,\nencrypted as `{claims}`, and indexed with protected names and values.\nNative FHIR fields and unknown claims fail before persistence.\nRepeating an identical POST is idempotent; the same id with different\nclaims requires PUT plus the weak ETag returned by the preceding\nread. GW owns `<ResourceType>.meta.versionId`; clients may echo it\nbut cannot choose it. A stale `ifMatch` returns 412 without writing.\nServiceRequest records demand; Task records the\nseparate operational triage assignment. CommunicationRequest records\ngoverned intent and never proves delivery. DocumentReference stores\nthe organization-authored payload or attachment without indexing bytes.\n",
         "parameters": [
           {
             "$ref": "#/components/parameters/AppId"
@@ -6243,7 +6243,8 @@
                 "Encounter",
                 "ServiceRequest",
                 "Task",
-                "CommunicationRequest"
+                "CommunicationRequest",
+                "DocumentReference"
               ]
             }
           }
@@ -6319,7 +6320,8 @@
                 "Encounter",
                 "ServiceRequest",
                 "Task",
-                "CommunicationRequest"
+                "CommunicationRequest",
+                "DocumentReference"
               ]
             }
           }
@@ -6377,7 +6379,8 @@
                 "Encounter",
                 "ServiceRequest",
                 "Task",
-                "CommunicationRequest"
+                "CommunicationRequest",
+                "DocumentReference"
               ]
             }
           }
@@ -6444,7 +6447,8 @@
                 "Encounter",
                 "ServiceRequest",
                 "Task",
-                "CommunicationRequest"
+                "CommunicationRequest",
+                "DocumentReference"
               ]
             }
           }

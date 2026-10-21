@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { HttpStatusCodes } from 'gdc-common-utils-ts/constants/http';
 import type { JobRequest } from 'gdc-common-utils-ts/models/confidential-job';
 import type { IDecodedDidcommPayload } from 'gdc-common-utils-ts/models/confidential-message';
@@ -8,11 +8,13 @@ import { ManagerError } from 'gdc-common-utils-ts/utils/manager-error';
 import { claimsToContentCid } from 'gdc-common-utils-ts/utils/fhir-cid';
 import {
   CommunicationRequestClaim,
+  DocumentReferenceClaim,
   EncounterClaim,
   HealthcareServiceClaim,
   ServiceRequestClaim,
   TaskClaim,
 } from 'fhir-data-utils-ts/claims';
+import { assertPublicNotificationDatasetName, PublicAlertOperationalClaim } from 'sos-data-utils-ts/public-notifications';
 import type { IVaultRepository } from '../database/repositories/vault/vault.repository';
 import type { IKmsService } from '../gdc-backend-utils-node/models/IKmsService';
 import { EntityLifecycleStatus } from '../gdc-backend-utils-node/models/enums';
@@ -30,7 +32,7 @@ import { createOperationOutcome } from '../utils/outcome';
 import { getTenantVaultId } from '../utils/tenant';
 import type { IJobProcessor } from './registry';
 
-export type CareCoordinationResourceType = 'Encounter' | 'ServiceRequest' | 'Task' | 'CommunicationRequest' | 'HealthcareService';
+export type CareCoordinationResourceType = 'Encounter' | 'ServiceRequest' | 'Task' | 'CommunicationRequest' | 'DocumentReference' | 'HealthcareService';
 
 type TenantRegistry = Readonly<{
   tenantExists(vaultId: string): Promise<boolean>;
@@ -64,9 +66,15 @@ const config = Object.freeze({
     identifier: TaskClaim.Identifier,
   },
   CommunicationRequest: {
-    section: 'care-communication-requests', claims: new Set(Object.values(CommunicationRequestClaim)),
-    required: [CommunicationRequestClaim.Identifier, CommunicationRequestClaim.Status, CommunicationRequestClaim.Category, CommunicationRequestClaim.Subject, CommunicationRequestClaim.Requester, CommunicationRequestClaim.AuthoredOn, CommunicationRequestClaim.ReasonReference],
+    section: 'care-communication-requests', claims: new Set([...Object.values(CommunicationRequestClaim), PublicAlertOperationalClaim.DatasetName]),
+    required: [CommunicationRequestClaim.Identifier, CommunicationRequestClaim.Status, CommunicationRequestClaim.Category, CommunicationRequestClaim.Subject, CommunicationRequestClaim.Requester, CommunicationRequestClaim.AuthoredOn],
     identifier: CommunicationRequestClaim.Identifier,
+  },
+  DocumentReference: {
+    section: 'organization-document-references', claims: new Set(Object.values(DocumentReferenceClaim)),
+    indexed: new Set(Object.values(DocumentReferenceClaim).filter(claim => claim !== DocumentReferenceClaim.ContentData)),
+    required: [DocumentReferenceClaim.Identifier, DocumentReferenceClaim.Subject, DocumentReferenceClaim.Author, DocumentReferenceClaim.ContentType, DocumentReferenceClaim.ContentData, DocumentReferenceClaim.ContentHash],
+    identifier: DocumentReferenceClaim.Identifier,
   },
   HealthcareService: {
     section: 'healthcare-services', claims: new Set(Object.values(HealthcareServiceClaim)),
@@ -78,11 +86,12 @@ const config = Object.freeze({
   claims: ReadonlySet<string>;
   required: readonly string[];
   identifier: string;
+  indexed?: ReadonlySet<string>;
 }>);
 
 /**
- * Persists VetChain care-continuity and SOS work resources as canonical flat
- * claims. Native FHIR is rejected at this operational boundary; only protected
+ * Persists care-continuity and public-notification work resources as canonical
+ * flat claims. Native FHIR is rejected at this operational boundary; only protected
  * standard SearchParameter claims are indexed and native R4/R5 resources may
  * be materialized later by an explicit projection adapter.
  */
@@ -97,7 +106,7 @@ export class CareCoordinationManager implements IJobProcessor {
     }
     const data = [];
     for (const entry of entries(job)) {
-      try { data.push(await this.write(entry, storage)); }
+      try { data.push(await this.write(job, entry, storage)); }
       catch (error) { data.push(errorEntry(this.deps.resourceType, error)); }
     }
     return response(job, 'batch-response', data);
@@ -123,12 +132,13 @@ export class CareCoordinationManager implements IJobProcessor {
     return { vaultId, collectionName };
   }
 
-  private async write(entry: any, storage: Readonly<{ vaultId: string; collectionName: string }>) {
+  private async write(job: JobRequest, entry: any, storage: Readonly<{ vaultId: string; collectionName: string }>) {
     const method = String(entry?.request?.method || '').toUpperCase();
     if (method !== 'POST' && method !== 'PUT') {
       throw new ManagerError(`Unsupported ${this.deps.resourceType} method.`, IssueType.NotSupported);
     }
     const normalized = this.normalize(entry?.resource);
+    if (this.deps.resourceType === 'CommunicationRequest') validatePublicDatasetRoute(job, normalized.claims);
     if (entry?.request?.url && entry.request.url !== `${this.deps.resourceType}/${normalized.id}`) {
       throw new ManagerError(`${this.deps.resourceType} request URL does not match its resource.`, IssueType.Invalid);
     }
@@ -163,7 +173,8 @@ export class CareCoordinationManager implements IJobProcessor {
         return errorEntry(this.deps.resourceType, new Error(`${this.deps.resourceType} version does not match request.ifMatch.`), '412', IssueType.Conflict);
       }
     }
-    const attributes = flatClaimsToIndexedAttributes(versionedClaims, resourceConfig.claims, resourceConfig.identifier);
+    const indexableClaims = 'indexed' in resourceConfig ? resourceConfig.indexed : resourceConfig.claims;
+    const attributes = flatClaimsToIndexedAttributes(versionedClaims, indexableClaims, resourceConfig.identifier);
     const protectedAttributes = await this.deps.kms.protectAttributesNameAndValue(attributes as any, storage.vaultId);
     const document: ConfidentialStorageDoc = {
       id: normalized.id,
@@ -224,7 +235,49 @@ export class CareCoordinationManager implements IJobProcessor {
         if (!claims[name]?.length) throw new ManagerError(`${name} is required.`, IssueType.Required);
       }
     }
+    if (requireRequiredClaims && this.deps.resourceType === 'DocumentReference') validateDocumentReferenceContent(claims);
     return { id, claims };
+  }
+}
+
+function validatePublicDatasetRoute(job: JobRequest, claims: FlatClaims): void {
+  const datasetName = claims[PublicAlertOperationalClaim.DatasetName]?.[0];
+  if (!datasetName) return;
+  assertPublicNotificationDatasetName(datasetName);
+  const sector = String(job.sector || '');
+  const expectedPrefix = `${String(job.jurisdiction || '').toLowerCase()}_${sector}${sector === 'public-health' ? '_' : '_public_'}`;
+  if (!datasetName.startsWith(expectedPrefix)) throw new ManagerError('Public dataset route does not match the tenant sector and jurisdiction.', IssueType.Forbidden);
+  if (claims[CommunicationRequestClaim.Status]?.[0] !== 'active' || claims[CommunicationRequestClaim.Intent]?.[0] !== 'order') {
+    throw new ManagerError('Direct public publication requires an active order.', IssueType.Invalid);
+  }
+  if (claims[CommunicationRequestClaim.InformationProvider]?.[0] !== `Organization/${String(job.tenantId)}`) {
+    throw new ManagerError('Public information provider must match the publishing tenant.', IssueType.Forbidden);
+  }
+  if (!claims[CommunicationRequestClaim.Requester]?.[0]?.startsWith('PractitionerRole/')) {
+    throw new ManagerError('Public publication requester must be a PractitionerRole.', IssueType.Invalid);
+  }
+  if (!claims[CommunicationRequestClaim.Recipient]?.[0]?.startsWith('Endpoint/')) {
+    throw new ManagerError('Public publication recipient must be a topic Endpoint.', IssueType.Invalid);
+  }
+  const authoredOn = Date.parse(claims[CommunicationRequestClaim.AuthoredOn]?.[0] || '');
+  const validUntil = Date.parse(claims[CommunicationRequestClaim.OccurrencePeriodEnd]?.[0] || '');
+  if (!Number.isFinite(authoredOn) || !Number.isFinite(validUntil) || validUntil <= authoredOn) {
+    throw new ManagerError('Public publication validity period is invalid.', IssueType.Invalid);
+  }
+  if (!claims[CommunicationRequestClaim.PayloadReference]?.[0]?.startsWith('DocumentReference/')) {
+    throw new ManagerError('Public publication Markdown DocumentReference is required.', IssueType.Required);
+  }
+}
+
+function validateDocumentReferenceContent(claims: FlatClaims): void {
+  const content = claims[DocumentReferenceClaim.ContentData]?.[0] || '';
+  const bytes = Buffer.from(content, 'base64');
+  if (!bytes.length || bytes.length > 10 * 1024 * 1024 || bytes.toString('base64') !== content) {
+    throw new ManagerError('DocumentReference content data is invalid.', IssueType.Invalid);
+  }
+  const digest = claims[DocumentReferenceClaim.ContentHash]?.[0] || '';
+  if (!/^[a-f0-9]{64}$/u.test(digest) || createHash('sha256').update(bytes).digest('hex') !== digest) {
+    throw new ManagerError('DocumentReference content hash is invalid.', IssueType.Invalid);
   }
 }
 

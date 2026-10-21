@@ -232,6 +232,7 @@ describe('Worker', () => {
     ['ServiceRequest', 'serviceRequestManager'],
     ['Task', 'careTaskManager'],
     ['CommunicationRequest', 'communicationRequestManager'],
+    ['DocumentReference', 'organizationDocumentReferenceManager'],
   ] as const)('routes FHIR R5 %s jobs to the claims-first care coordination manager', async (resourceType, registryKey) => {
     const manager = mock<IJobProcessor>();
     const localWorker = new Worker(
