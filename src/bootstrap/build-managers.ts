@@ -218,6 +218,7 @@ export function buildManagers(options: {
   const serviceRequestManager = new CareCoordinationManager({ resourceType: 'ServiceRequest', repository: vaultRepository, kms: kmsService, tenantManager });
   const careTaskManager = new CareCoordinationManager({ resourceType: 'Task', repository: vaultRepository, kms: kmsService, tenantManager });
   const communicationRequestManager = new CareCoordinationManager({ resourceType: 'CommunicationRequest', repository: vaultRepository, kms: kmsService, tenantManager });
+  const organizationDocumentReferenceManager = new CareCoordinationManager({ resourceType: 'DocumentReference', repository: vaultRepository, kms: kmsService, tenantManager });
   const healthcareServiceManager = new CareCoordinationManager({ resourceType: 'HealthcareService', repository: vaultRepository, kms: kmsService, tenantManager });
   const organizationDirectoryManager = new DirectoryManager({ resourceType: 'Organization', repository: vaultRepository, kms: kmsService, tenantManager });
   const placeManager = new DirectoryManager({ resourceType: 'Place', repository: vaultRepository, kms: kmsService, tenantManager });
@@ -273,6 +274,7 @@ export function buildManagers(options: {
     serviceRequestManager,
     careTaskManager,
     communicationRequestManager,
+    organizationDocumentReferenceManager,
     healthcareServiceManager,
     organizationDirectoryManager,
     placeManager,

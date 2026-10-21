@@ -41,6 +41,8 @@ import { NativeFhirFormats } from '../../constants/fhir-discovery';
 import { SUBJECT_SECTION_DIGITAL_TWIN } from '../../constants/domain';
 import { ResourceTypesFhirR4 } from 'gdc-common-utils-ts/constants/fhir-resource-types';
 import { ContinuityServiceCapability } from 'sos-data-utils-ts/continuity-service-capabilities';
+import { PublicAlertOperationalClaim } from 'sos-data-utils-ts/public-notifications';
+import { CommunicationRequestClaim, DocumentReferenceClaim } from 'fhir-data-utils-ts/claims';
 
 const EXAMPLE_SIGNED_TERMS_PDF_HASH = createHash('sha256')
   .update(EXAMPLE_SIGNED_TERMS_PDF_URL)
@@ -52,6 +54,7 @@ const mockTenantsCacheManager = {
   isTenantOperational: jest.fn(async () => true),
   getTenantDomainUrl: jest.fn(async () => 'https://host.example.com'),
   getTenantOperationalUrl: jest.fn(),
+  getTenantJurisdiction: jest.fn(async () => 'CA-BC'),
   getTenantSector: jest.fn(async () => 'health-care'),
   getDidServiceConfig: jest.fn(),
   listAutodiscoverableTenants: jest.fn(),
@@ -61,6 +64,7 @@ const mockTenantsCacheManager = {
 
 const mockVaultRepository = {
   getContainersInSection: jest.fn(async () => []),
+  listContainersInSection: jest.fn(async () => []),
 } as unknown as jest.Mocked<IVaultRepository>;
 
 // Create a fully typed mock of the IKmsService to satisfy the interface
@@ -937,5 +941,48 @@ describe('DSP Discovery API', () => {
         coverageScope: EXAMPLE_COVERAGE_SCOPE_EU,
       }),
     );
+  });
+
+  it('returns active public notification projections without attachment bytes or subscriber data', async () => {
+    mockTenantsCacheManager.getDidDocument.mockResolvedValue({ id: EXAMPLE_HOSTING_OPERATOR_DID } as any);
+    mockTenantsCacheManager.listAutodiscoverableTenants.mockResolvedValue([{
+      didDocument: { id: 'did:web:clinic.example' },
+      collectionName: 'clinic-collection',
+      claims: {
+        [ClaimsOrganizationSchemaorg.alternateName]: 'clinic',
+        [ClaimsOrganizationSchemaorg.name]: 'Example clinic',
+        [ClaimsOrganizationSchemaorg.addressCountry]: 'CA-BC',
+        [ClaimsServiceSchemaorg.category]: 'animal-care',
+      },
+    }] as any);
+    mockVaultRepository.listContainersInSection.mockImplementation(async (_collection: string, section: string) => section === 'care-communication-requests'
+      ? [{ id: 'notice-1', content: { claims: {
+        [CommunicationRequestClaim.Status]: ['active'],
+        [CommunicationRequestClaim.InformationProvider]: ['Organization/clinic'],
+        [CommunicationRequestClaim.Note]: ['Dog blood needed'],
+        [CommunicationRequestClaim.PayloadReference]: ['DocumentReference/content-1'],
+        [CommunicationRequestClaim.About]: ['DocumentReference/instructions-1'],
+        [CommunicationRequestClaim.AuthoredOn]: ['2026-10-20T00:00:00.000Z'],
+        [CommunicationRequestClaim.OccurrencePeriodEnd]: ['2099-10-21T00:00:00.000Z'],
+        [PublicAlertOperationalClaim.DatasetName]: ['ca-bc_animal-care_public_blood-donation_dog_alert'],
+      } } }]
+      : section === 'organization-document-references'
+        ? [{ id: 'content-1', content: { claims: {
+          [DocumentReferenceClaim.ContentType]: ['text/markdown'],
+          [DocumentReferenceClaim.ContentData]: [Buffer.from('Call before travelling.').toString('base64')],
+        } } }]
+        : [] as any);
+    mockKmsService.unprotectConfidentialData.mockImplementation(async (record: any) => record.content);
+
+    const response = await invokeExpress(app, {
+      method: 'POST', url: '/api/public-notifications/search',
+      headers: { host: EXAMPLE_HOST_PUBLIC_HOSTNAME, 'content-type': 'application/json' },
+      body: { datasetNames: ['ca-bc_animal-care_public_blood-donation_dog_alert'] },
+    });
+    const parsed = JSON.parse(response.text);
+
+    expect(response.status).toBe(200);
+    expect(parsed.notifications).toEqual([expect.objectContaining({ notificationId: 'notice-1', subject: 'Dog blood needed' })]);
+    expect(JSON.stringify(parsed)).not.toMatch(/contentData|subscriber|recipient/i);
   });
 });

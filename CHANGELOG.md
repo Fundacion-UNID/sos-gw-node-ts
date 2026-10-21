@@ -1,5 +1,15 @@
 ## Unreleased
 
+- Persist public-notification `CommunicationRequest` and attachment
+  `DocumentReference` batches through claims-first encrypted storage, validate
+  the publisher tenant, jurisdiction, sector, topic endpoint, active validity
+  period and content hash, and exclude attachment bytes from searchable indexes.
+- Add the read-only public dataset-notification discovery projection and keep
+  subscriber identities, delivery preferences and attachment bytes outside the
+  catalog response.
+- Publish the complete unnumbered portal capability reference beside the
+  beginner BFF guide without inventing a `102` route convention.
+
 - Enable the canonical `application/didcomm-plain+json` transport in the
   shared compat-mode GKE deployer so the published SOS SDK card-directory
   client is not rejected with HTTP 415 in staging.

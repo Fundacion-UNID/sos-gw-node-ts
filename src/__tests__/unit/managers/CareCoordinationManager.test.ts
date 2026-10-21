@@ -1,12 +1,14 @@
-// Flow contract: authenticated VetChain care coordination stores Encounter, ServiceRequest, triage Task and CommunicationRequest as encrypted claims only; protected SearchParameter indexes support readback and native FHIR fields fail before persistence.
+// Flow contract: authenticated organization workflows store Encounter, ServiceRequest, triage Task, CommunicationRequest and DocumentReference as encrypted flat claims only; public requests retain an explicit dataset routing claim, attachment bytes are never indexed, and native FHIR fields fail before persistence.
 import { describe, expect, it, jest } from '@jest/globals';
 import {
   CommunicationRequestClaim,
+  DocumentReferenceClaim,
   EncounterClaim,
   HealthcareServiceClaim,
   ServiceRequestClaim,
   TaskClaim,
 } from 'fhir-data-utils-ts/claims';
+import { PublicAlertOperationalClaim } from 'sos-data-utils-ts/public-notifications';
 import { CareCoordinationManager, type CareCoordinationResourceType } from '../../../managers/CareCoordinationManager';
 import { GATEWAY_PROFILE_TEST_SUBJECTS } from '../../../config/gateway-capability-profile';
 
@@ -16,6 +18,7 @@ describe('CareCoordinationManager', () => {
     ['ServiceRequest', ServiceRequestClaim.Identifier, serviceRequestClaims()],
     ['Task', TaskClaim.Identifier, taskClaims()],
     ['CommunicationRequest', CommunicationRequestClaim.Identifier, communicationRequestClaims()],
+    ['DocumentReference', DocumentReferenceClaim.Identifier, documentReferenceClaims()],
     ['HealthcareService', HealthcareServiceClaim.Identifier, healthcareServiceClaims()],
   ] as const)('stores and searches %s through claims-only encrypted persistence', async (resourceType, identifierClaim, claims) => {
     let stored: any;
@@ -119,6 +122,30 @@ describe('CareCoordinationManager', () => {
     expect((unknownResult.body as any).data[0].response.status).toBe('400');
     expect(protectConfidentialData).not.toHaveBeenCalled();
   });
+
+  it('persists a public dataset CommunicationRequest without indexing its DocumentReference bytes', async () => {
+    const stored: any[] = [];
+    const repository = {
+      get: jest.fn(async () => undefined),
+      put: jest.fn(async (_collection: string, records: any[]) => { stored.push(records[0]); return true; }),
+      listContainersInSection: jest.fn(async () => []),
+    } as any;
+    const kms = {
+      protectAttributesNameAndValue: jest.fn(async (attributes: any[]) => attributes),
+      protectConfidentialData: jest.fn(async (document: any) => document),
+      unprotectConfidentialData: jest.fn(async (document: any) => document.content),
+    } as any;
+    const documentManager = new CareCoordinationManager({ resourceType: 'DocumentReference', repository, kms, tenantManager: tenantManager() });
+    const requestManager = new CareCoordinationManager({ resourceType: 'CommunicationRequest', repository, kms, tenantManager: tenantManager() });
+
+    const documentResult = await documentManager.process(job('DocumentReference', '_batch', resource('DocumentReference', 'content-one', documentReferenceClaims())));
+    const requestResult = await requestManager.process(job('CommunicationRequest', '_batch', resource('CommunicationRequest', 'request-one', publicCommunicationRequestClaims())));
+
+    expect((documentResult.body as any).data[0].response.status).toBe('201');
+    expect((requestResult.body as any).data[0].response.status).toBe('201');
+    expect(stored[0].indexed.attributes.map((entry: any) => entry.name)).not.toContain(DocumentReferenceClaim.ContentData);
+    expect(stored[1].content.claims[PublicAlertOperationalClaim.DatasetName]).toEqual(['ca-bc_animal-care_public_blood-donation_dog_alert']);
+  });
 });
 
 function tenantManager() {
@@ -171,10 +198,39 @@ function taskClaims() {
 function communicationRequestClaims() {
   return {
     [CommunicationRequestClaim.Identifier]: 'urn:uuid:record-one', [CommunicationRequestClaim.Status]: 'active',
+    [CommunicationRequestClaim.Intent]: 'order',
     [CommunicationRequestClaim.Category]: 'http://terminology.hl7.org/CodeSystem/communication-category|notification',
     [CommunicationRequestClaim.Subject]: 'Group/cohort-one', [CommunicationRequestClaim.Requester]: 'Organization/blood-bank-one',
     [CommunicationRequestClaim.AuthoredOn]: '2026-09-26T18:00:00.000Z',
     [CommunicationRequestClaim.ReasonReference]: 'ResearchStudy/study-one',
+  };
+}
+
+function documentReferenceClaims() {
+  return {
+    [DocumentReferenceClaim.Identifier]: 'urn:uuid:record-one',
+    [DocumentReferenceClaim.Subject]: 'Group/public-audience-one',
+    [DocumentReferenceClaim.Author]: 'PractitionerRole/publisher-one',
+    [DocumentReferenceClaim.ContentType]: 'text/markdown',
+    [DocumentReferenceClaim.ContentData]: 'SGVsbG8=',
+    [DocumentReferenceClaim.ContentHash]: '185f8db32271fe25f561a6fc938b2e264306ec304eda518007d1764826381969',
+  };
+}
+
+function publicCommunicationRequestClaims() {
+  return {
+    [CommunicationRequestClaim.Identifier]: 'urn:uuid:request-one',
+    [CommunicationRequestClaim.Status]: 'active', [CommunicationRequestClaim.Intent]: 'order',
+    [CommunicationRequestClaim.Category]: 'http://terminology.hl7.org/CodeSystem/communication-category|notification',
+    [CommunicationRequestClaim.Subject]: 'Group/public-audience-one',
+    [CommunicationRequestClaim.Requester]: 'PractitionerRole/publisher-one',
+    [CommunicationRequestClaim.Recipient]: 'Endpoint/public-topic-one',
+    [CommunicationRequestClaim.InformationProvider]: 'Organization/clinic',
+    [CommunicationRequestClaim.AuthoredOn]: '2026-10-21T18:00:00.000Z',
+    [CommunicationRequestClaim.OccurrencePeriodStart]: '2026-10-21T18:00:00.000Z',
+    [CommunicationRequestClaim.OccurrencePeriodEnd]: '2026-10-22T18:00:00.000Z',
+    [CommunicationRequestClaim.PayloadReference]: 'DocumentReference/content-one',
+    [PublicAlertOperationalClaim.DatasetName]: 'ca-bc_animal-care_public_blood-donation_dog_alert',
   };
 }
 

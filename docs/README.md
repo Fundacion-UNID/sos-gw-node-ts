@@ -3,7 +3,8 @@
 This repository owns the SOS gateway-facing BFF and portal composition
 documentation, as GW CORE did for the original integration. SDK documentation
 describes reusable APIs and runtime mechanics only. Start with the
-[BFF beginner contract](101-PORTAL_BFF_CONTRACT.md), then the
+[BFF beginner contract](101-PORTAL_BFF_CONTRACT.md), continue with the
+[complete portal API reference](PORTAL_API_TO_GW_CORE.md), then the
 [host and tenant administration reference](HOST_AND_TENANT_ADMINISTRATION.md)
 and [BFF Node runtime integration](BFF_NODE_RUNTIME.md).
 
@@ -15,14 +16,15 @@ foundation's original design or version-specific reference.
 
 1. [Architecture](architecture.md)
 2. [BFF beginner contract](101-PORTAL_BFF_CONTRACT.md)
-3. [Host and tenant administration](HOST_AND_TENANT_ADMINISTRATION.md)
-4. [Portal and demo deployment scope](PORTAL_DEPLOYMENT_SCOPE.md)
-5. [BFF integration profile](bff-integration.md)
-6. [BFF Node runtime integration](BFF_NODE_RUNTIME.md)
-7. [Getting started](getting-started.md)
-8. [API and interoperability](api-and-interoperability.md)
-9. [Security and deployment](security-and-deployment.md)
-10. [Upstream projects and history](upstream-and-history.md)
+3. [Complete portal API reference](PORTAL_API_TO_GW_CORE.md)
+4. [Host and tenant administration](HOST_AND_TENANT_ADMINISTRATION.md)
+5. [Portal and demo deployment scope](PORTAL_DEPLOYMENT_SCOPE.md)
+6. [BFF integration profile](bff-integration.md)
+7. [BFF Node runtime integration](BFF_NODE_RUNTIME.md)
+8. [Getting started](getting-started.md)
+9. [API and interoperability](api-and-interoperability.md)
+10. [Security and deployment](security-and-deployment.md)
+11. [Upstream projects and history](upstream-and-history.md)
 
 ## Sources of truth
 
