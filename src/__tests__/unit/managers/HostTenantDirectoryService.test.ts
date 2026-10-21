@@ -101,6 +101,15 @@ describe('HostTenantDirectoryService', () => {
     expect(JSON.stringify(response)).not.toContain('hidden');
   });
 
+  it('filters by the canonical organization legal name used by the host portal', async () => {
+    const response = await service.search(request({ filters: {
+      [ClaimsOrganizationSchemaorg.legalName]: 'Beta Veterinary',
+    } }));
+
+    expect(response.body.total).toBe(1);
+    expect(response.body.data[0].resource.id).toBe('beta');
+  });
+
   it('rejects an authenticated tenant controller that is not the configured host operator', async () => {
     await expect(service.search(request({ sub: 'tenant-controller-001' }))).rejects.toThrow(/host operator/i);
     expect(registry.listRegisteredTenants).not.toHaveBeenCalled();

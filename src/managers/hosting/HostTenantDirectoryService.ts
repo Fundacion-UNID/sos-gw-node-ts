@@ -182,6 +182,8 @@ export class HostTenantDirectoryService {
       GatewayClaim.TenantAuthorizationStatus,
       ClaimsOrganizationSchemaorg.identifierType,
       ClaimsOrganizationSchemaorg.identifierValue,
+      ClaimsOrganizationSchemaorg.legalName,
+      ClaimsOrganizationSchemaorg.name,
     ];
     return supportedFilters.every(name => {
       const expected = normalized(filters[name]).toLowerCase();
