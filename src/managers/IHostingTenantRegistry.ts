@@ -23,6 +23,14 @@
  */
 export interface IHostingTenantRegistry {
   /**
+   * Lists every protected host registration for host-operator administration.
+   * Unlike autodiscovery this includes suspended and non-provider tenants.
+   * Callers must project a privacy-minimized response and never return the
+   * registry objects directly.
+   */
+  listRegisteredTenants(): Promise<any[]>;
+
+  /**
    * Reads the full tenant registration/configuration object.
    *
    * Hosting needs this when finalizing or serving lifecycle transitions on a

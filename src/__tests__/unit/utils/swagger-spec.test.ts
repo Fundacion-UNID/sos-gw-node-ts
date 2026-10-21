@@ -12,10 +12,12 @@ describe('Swagger Spec Generation', () => {
     expect(spec.paths[relatedPersonPurgePath]).toBeDefined();
     for (const path of [
       '/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_status',
+      '/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_search',
       '/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_disable',
       '/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_enable',
       '/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_purge',
       '/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_status-response',
+      '/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_search-response',
       '/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_disable-response',
       '/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_enable-response',
       '/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_purge-response',

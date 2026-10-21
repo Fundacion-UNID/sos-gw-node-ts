@@ -75,6 +75,7 @@ import {
 } from '../utils/offer-order-read-model';
 import { HostingOfferOrderService } from './hosting/HostingOfferOrderService';
 import { HostingLifecycleService } from './hosting/HostingLifecycleService';
+import { HostTenantDirectoryService } from './hosting/HostTenantDirectoryService';
 import { canonicalizeBundleEntryMetadata } from '../utils/canonical-entry-metadata';
 import { processHostOrderEntry } from './hosting/process-order-entry';
 import { createPendingTenantRegistration } from './hosting/create-pending-tenant-registration';
@@ -288,6 +289,7 @@ export class HostingManager {
   private activationTrustAdapter: IActivationTrustAdapter;
   private offerOrderService: HostingOfferOrderService;
   private lifecycleService: HostingLifecycleService;
+  private tenantDirectoryService: HostTenantDirectoryService;
   private cryptographyService?: ICryptography;
 
   constructor(
@@ -330,6 +332,13 @@ export class HostingManager {
       this.hostRuntime,
       this.storageAdapter,
       (error, type, meta) => this.handleError(error, type, meta),
+    );
+    this.tenantDirectoryService = new HostTenantDirectoryService(
+      this.tenantsCacheManager,
+      {
+        hostAdminUid: this.config.host.adminUid,
+        hostDid: this.hostRuntime.hostDid,
+      },
     );
   }
 
@@ -805,6 +814,9 @@ export class HostingManager {
     try {
       switch (job.resourceType) {
         case 'Organization':
+          if (job.action === '_search') {
+            return await this.tenantDirectoryService.search(job);
+          }
           if (job.action === '_transaction') {
             return await this.processOrganizationVerificationTransaction(job);
           }

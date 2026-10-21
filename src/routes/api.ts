@@ -358,6 +358,7 @@ function isHostTenantLifecycleRoute(
       || action === ACTION_ENABLE
       || action === ACTION_PURGE
       || action === ACTION_STATUS
+      || action === '_search'
     );
 }
 
@@ -1376,6 +1377,30 @@ export function createApiRouter(
    *     responses:
    *       '202': { description: Accepted. Poll the Location URL. }
    *
+   * /host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_search:
+   *   post:
+   *     tags: [1.1 Organization Registration]
+   *     summary: Search the protected hosted-organization directory
+   *     description: |
+   *       Host-operator-only search of the protected registry. The DIDComm response contains a
+   *       paginated Bundle with privacy-minimized org.schema Organization projections. It includes
+   *       suspended tenants and is therefore not the public autodiscovery catalog. Entry failures
+   *       use OperationOutcome. Tenant secrets, keys and storage configuration are never returned.
+   *     parameters:
+   *       - $ref: '#/components/parameters/AppId'
+   *       - $ref: '#/components/parameters/AppVersion'
+   *       - $ref: '#/components/parameters/Jurisdiction'
+   *       - $ref: '#/components/parameters/HostRegistrySector'
+   *     security: [{ BearerAuth: [] }]
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/didcomm-plain+json: { schema: { $ref: '#/components/schemas/DidcommPlaintextMessage' } }
+   *     responses:
+   *       '202': { description: Accepted. Poll the Location URL. }
+   *       '401': { description: The protected request or bearer could not be verified. }
+   *       '403': { description: The authenticated actor is not the configured host operator. }
+   *
    * /host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_disable:
    *   post:
    *     tags: [1.1 Organization Registration]
@@ -1453,6 +1478,14 @@ export function createApiRouter(
    *     security: [{ BearerAuth: [] }]
    *     requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncPollRequest' } } } }
    *     responses: { '202': { description: Pending. }, '200': { description: Completed. } }
+   *
+   * /host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_search-response:
+   *   post:
+   *     tags: [1.1 Organization Registration]
+   *     summary: Poll the protected hosted-organization directory search
+   *     security: [{ BearerAuth: [] }]
+   *     requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AsyncPollRequest' } } } }
+   *     responses: { '202': { description: Pending. }, '200': { description: Completed DIDComm response containing the paginated Bundle. } }
    *
    * /host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_disable-response:
    *   post:

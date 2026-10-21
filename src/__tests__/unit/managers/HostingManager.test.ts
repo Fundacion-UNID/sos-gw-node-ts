@@ -180,6 +180,7 @@ describe('HostingManager', () => {
         jurisdiction: 'us',
         idType: 'test-id',
         idValue: '12345',
+        adminUid: 'host-admin-001',
       },
       mongo: { dbName: 'test' },
       firebase: {},
@@ -223,6 +224,65 @@ describe('HostingManager', () => {
     expect(entry.response.status).toBe('201');
     // Host registration should now also return an offer, aligning with the tenant flow.
     expect(entry.type).toBe('Organization-registration-offer-v1.0');
+  });
+
+  it('[1.0a HOST] returns a DIDComm-wrapped paginated Bundle for the authorized host Organization search', async () => {
+    const responsePayload = await hostingManager.process({
+      action: '_search',
+      resourceType: 'Organization',
+      content: {
+        thid: 'host-organization-search-001',
+        iss: 'did:web:host-controller.example',
+        meta: { bearer: { jwt: { payload: { sub: 'host-admin-001' } } } },
+        body: {
+          resourceType: 'Bundle',
+          type: 'searchset',
+          data: [{
+            type: 'Organization-search-v1.0',
+            resource: { resourceType: 'Organization', meta: { claims: {} } },
+            request: { method: 'GET', url: 'Organization/_search' },
+          }],
+          meta: { pagination: { pageSize: 10 } },
+        },
+      },
+    } as any);
+
+    expect(responsePayload).toMatchObject({
+      type: 'hosting-response',
+      thid: 'host-organization-search-001',
+      aud: 'did:web:host-controller.example',
+      body: {
+        resourceType: 'Bundle',
+        type: 'searchset',
+        total: 0,
+        data: [],
+        meta: { pagination: { pageSize: 10, returned: 0, hasNext: false } },
+      },
+    });
+  });
+
+  it('[1.0b HOST] returns an OperationOutcome entry when a tenant controller attempts the host directory search', async () => {
+    const responsePayload = await hostingManager.process({
+      action: '_search',
+      resourceType: 'Organization',
+      content: {
+        thid: 'host-organization-search-denied-001',
+        iss: 'did:web:tenant-controller.example',
+        meta: { bearer: { jwt: { payload: { sub: 'tenant-controller-001' } } } },
+        body: {
+          resourceType: 'Bundle',
+          type: 'searchset',
+          data: [{
+            type: 'Organization-search-v1.0',
+            resource: { resourceType: 'Organization', meta: { claims: {} } },
+          }],
+        },
+      },
+    } as any);
+
+    expect(responsePayload.body.resourceType).toBe('Bundle');
+    expect(responsePayload.body.data[0].response.outcome.resourceType).toBe('OperationOutcome');
+    expect(responsePayload.body.data[0].response.outcome.issue[0].diagnostics).toMatch(/host operator/i);
   });
 
   it('[1.1 HOST] reconciles a stale persisted host service surface and restores Organization/_transaction', async () => {

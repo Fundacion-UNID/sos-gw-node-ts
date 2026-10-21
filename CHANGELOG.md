@@ -1,5 +1,11 @@
 ## Unreleased
 
+- Add the host-operator-only, DIDComm `org.schema` Organization directory
+  search with privacy-minimized paginated Bundle readback, lifecycle filters,
+  OperationOutcome failures and exact configured-host-administrator gating.
+  Advertise `_search` and `_status` in the host registry service catalog while
+  keeping suspended tenants out of public autodiscovery.
+
 - Persist public-notification `CommunicationRequest` and attachment
   `DocumentReference` batches through claims-first encrypted storage, validate
   the publisher tenant, jurisdiction, sector, topic endpoint, active validity

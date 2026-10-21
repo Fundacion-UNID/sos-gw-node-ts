@@ -620,6 +620,39 @@ describe('Organization Registration API', () => {
       expect((mockQueueAdapter.addJob as jest.Mock).mock.calls[0][1].action).toBe('_status');
     });
 
+    it('should route the protected paginated host Organization search through the host registry queue', async () => {
+      const response = await invokeExpress(app, {
+        method: 'POST',
+        url: '/host/cds-es/v1/test/registry/org.schema/Organization/_search',
+        headers: {
+          'Content-Type': 'application/json',
+          'App-ID': 'test-app',
+          'App-Version': '1.0.0',
+        },
+        body: {
+          thid: 'host-organization-search-thid',
+          body: {
+            resourceType: 'Bundle',
+            type: 'searchset',
+            meta: { pagination: { pageSize: 25 } },
+            data: [{
+              type: 'Organization-search-v1.0',
+              resource: { resourceType: 'Organization', meta: { claims: {} } },
+              request: { method: 'GET', url: 'Organization/_search' },
+            }],
+          },
+        },
+      });
+
+      expect(response.status).toBe(202);
+      expect((mockQueueAdapter.addJob as jest.Mock).mock.calls[0][1]).toMatchObject({
+        action: '_search',
+        resourceType: 'Organization',
+        section: 'registry',
+        format: 'org.schema',
+      });
+    });
+
     it.each(['_disable-descendants', '_purge-descendants'])(
       'should not expose the non-resource lifecycle action %s',
       async (action) => {

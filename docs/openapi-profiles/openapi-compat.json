@@ -4,7 +4,7 @@
     "title": "Gateway API - COMPAT",
     "version": "1.0.3",
     "description": "Compatibility profile including legacy and alias routes on top of the core flow.",
-    "x-profile-generated-at": "2026-10-21T08:59:53.925Z",
+    "x-profile-generated-at": "2026-10-21T19:36:31.087Z",
     "x-profile-name": "compat"
   },
   "servers": [],
@@ -3571,6 +3571,56 @@
         "x-profile": "core"
       }
     },
+    "/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_search": {
+      "post": {
+        "tags": [
+          "1.1 Organization Registration"
+        ],
+        "summary": "Search the protected hosted-organization directory",
+        "description": "Host-operator-only search of the protected registry. The DIDComm response contains a\npaginated Bundle with privacy-minimized org.schema Organization projections. It includes\nsuspended tenants and is therefore not the public autodiscovery catalog. Entry failures\nuse OperationOutcome. Tenant secrets, keys and storage configuration are never returned.\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AppId"
+          },
+          {
+            "$ref": "#/components/parameters/AppVersion"
+          },
+          {
+            "$ref": "#/components/parameters/Jurisdiction"
+          },
+          {
+            "$ref": "#/components/parameters/HostRegistrySector"
+          }
+        ],
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/didcomm-plain+json": {
+              "schema": {
+                "$ref": "#/components/schemas/DidcommPlaintextMessage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted. Poll the Location URL."
+          },
+          "401": {
+            "description": "The protected request or bearer could not be verified."
+          },
+          "403": {
+            "description": "The authenticated actor is not the configured host operator."
+          }
+        },
+        "x-profile": "core"
+      }
+    },
     "/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_disable": {
       "post": {
         "tags": [
@@ -3777,6 +3827,38 @@
         "responses": {
           "200": {
             "description": "Completed."
+          },
+          "202": {
+            "description": "Pending."
+          }
+        },
+        "x-profile": "core"
+      }
+    },
+    "/host/cds-{jurisdiction}/v1/{sector}/registry/org.schema/Organization/_search-response": {
+      "post": {
+        "tags": [
+          "1.1 Organization Registration"
+        ],
+        "summary": "Poll the protected hosted-organization directory search",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AsyncPollRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Completed DIDComm response containing the paginated Bundle."
           },
           "202": {
             "description": "Pending."
