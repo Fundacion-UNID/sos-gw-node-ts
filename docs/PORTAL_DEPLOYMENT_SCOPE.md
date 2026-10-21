@@ -13,12 +13,17 @@ material, ICA identities or ledger profiles. Every portal BFF sends its stable
 application identity and calls only the tenant route assigned by deployment
 configuration.
 
-## One tenant-controller portal
+## Tenant-controller portal migration
 
-UNID Professional is the sole portal for tenant-controller administration in
-this staging topology. SOSChain Professional is an emergency and professional
-service channel; it must not grow a second tenant-controller console. Personal
-portals never grant controller authority.
+The current staging estate still has two sector-specific management portals:
+Vet and UHC. They are migration sources, not the intended final topology.
+
+The next deployment step is one sector-agnostic tenant-controller portal for
+all supported sectors. Until that migration is completed and validated, do not
+claim that a single controller portal is already deployed. SOSChain
+Professional remains an emergency and professional service channel and must
+not become another tenant-controller console. Personal portals never grant
+controller authority.
 
 ## Month-end demonstration boundary
 
@@ -38,5 +43,6 @@ When adding a demo flow:
 1. implement shared data and SDK behavior in the owning shared packages;
 2. expose it through the single SOS gateway;
 3. integrate it in the SOSChain personal or professional BFF as appropriate;
-4. keep tenant-controller operations in UNID Professional; and
+4. keep tenant-controller operations in the current Vet/UHC management portals
+   until the agnostic controller portal migration is complete; and
 5. do not fork the same behavior into another portal merely to change branding.

@@ -1,7 +1,8 @@
 ## Unreleased
 
-- Document the single-service portal boundary, the single tenant-controller
-  portal and the SOSChain-only scope of the month-end demo.
+- Document the single-service portal boundary, the migration from the current
+  Vet/UHC management portals to one sector-agnostic controller portal, and the
+  SOSChain-only scope of the month-end demo.
 - Define the shared SOSChain staging profile as one ClusterIP gateway serving
   `onehealth-research` and `animal-research` behind the cluster's shared Gateway,
   allow zonal GKE locations to differ from the Artifact Registry region, and
