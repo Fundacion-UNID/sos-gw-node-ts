@@ -1,5 +1,9 @@
 ## Unreleased
 
+- Enable the canonical `application/didcomm-plain+json` transport in the
+  shared compat-mode GKE deployer so the published SOS SDK card-directory
+  client is not rejected with HTTP 415 in staging.
+
 - Document the single-service portal boundary, the migration from the current
   Vet/UHC management portals to one sector-agnostic controller portal, and the
   SOSChain-only scope of the month-end demo.
