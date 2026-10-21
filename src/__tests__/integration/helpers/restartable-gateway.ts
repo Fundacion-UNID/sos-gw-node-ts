@@ -29,6 +29,7 @@ export type RestartableGatewayHarness = Readonly<{
   kmsService: KmsService;
   vaultRepository: VaultMemRepository;
   hostCollectionName: string;
+  tenantManager: TenantsCacheManager;
 }>;
 
 /**
@@ -70,7 +71,7 @@ export async function buildRestartableGateway(
     dbProvider: 'mem',
     queueProvider: 'mem',
     storageProvider: 'mem',
-    host: { legalName: 'Test Host', jurisdiction: 'ES', idType: 'TAX', idValue: 'VATES-B00000000' },
+    host: { legalName: 'Test Host', jurisdiction: 'ES', idType: 'TAX', idValue: 'VATES-B00000000', adminUid: 'host-admin-001' },
     ica: { mode: 'external', externalUrl: 'https://ica.example.com', jurisdiction: 'ES' },
     mongo: { dbName: 'test' },
     firebase: {},
@@ -94,7 +95,7 @@ export async function buildRestartableGateway(
   const worker = new Worker(managerRegistry, config.apiBaseUrl, kmsService);
   const queueAdapter = new QueueAdapterMem(asyncResponseStore, worker);
   const app = express.default();
-  app.use(express.json({ type: ['application/json', 'application/fhir+json'] }));
+  app.use(express.json({ type: ['application/json', 'application/fhir+json', 'application/didcomm-plain+json'] }));
   app.use(express.urlencoded({ extended: false }));
   app.use('/', createApiRouter(
     queueAdapter,
@@ -105,5 +106,5 @@ export async function buildRestartableGateway(
     cryptographyService,
     config.apiBaseUrl,
   ));
-  return { app, queueAdapter, kmsService, vaultRepository, hostCollectionName };
+  return { app, queueAdapter, kmsService, vaultRepository, hostCollectionName, tenantManager };
 }
