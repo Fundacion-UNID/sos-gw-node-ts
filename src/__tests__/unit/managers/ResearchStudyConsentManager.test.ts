@@ -3,6 +3,7 @@ import { describe, expect, it, jest } from '@jest/globals';
 import { HealthcareConsentPurposes } from 'gdc-common-utils-ts/constants/healthcare';
 import { ClaimConsent, ConsentDecisions, ConsentStatuses } from 'gdc-common-utils-ts/models/consent-rule';
 import { ClaimsPersonSchemaorg } from 'gdc-common-utils-ts/constants/schemaorg';
+import { OrganizationWorkflowCapabilities } from 'sos-data-utils-ts/organization-workflow-access';
 import {
   ResearchStudyConsentManager,
   SUBJECT_COMPOSITION_CONTRIBUTION_ACTION,
@@ -107,6 +108,43 @@ describe('ResearchStudyConsentManager', () => {
     expect((result.body as any).data[0]).toMatchObject({
       response: { status: '201' },
       resource: { resourceType: 'Consent', id: clinicalContributionConsentId, meta: { claims } },
+    });
+    expect((harness.protectConfidentialData.mock.calls.at(-1)?.[0] as any).content).toEqual({ claims });
+  });
+
+  it('persists public CommunicationRequest publishing for an exact governed Group member', async () => {
+    const groupId = 'public-alert-publishing-group';
+    const groupReference = `Group/${groupId}`;
+    const practitionerRoleReference = `PractitionerRole/${fixture.practitionerRoleId}`;
+    const organizationReference = `Organization/${fixture.tenantId}`;
+    const consentId = 'public-alert-publishing-consent';
+    const claims = {
+      [ClaimConsent.status]: [ConsentStatuses.Active],
+      [ClaimConsent.decision]: [ConsentDecisions.Permit],
+      [ClaimConsent.purpose]: [HealthcareConsentPurposes.Operations],
+      [ClaimConsent.subject]: [organizationReference],
+      [ClaimConsent.sourceReference]: [groupReference],
+      [ClaimConsent.actorIdentifier]: [practitionerRoleReference],
+      [ClaimConsent.actorRole]: ['ISCO-08|2250'],
+      [ClaimConsent.action]: [OrganizationWorkflowCapabilities.CommunicationRequestCreate],
+      [ClaimConsent.date]: ['2026-10-05T12:00:00.000Z'],
+      [ClaimConsent.grantor]: [organizationReference],
+      [ClaimConsent.grantee]: [practitionerRoleReference],
+      [ClaimConsent.manager]: [organizationReference],
+      [ClaimConsent.controller]: [organizationReference],
+      [ClaimConsent.identifier]: [`urn:uuid:${consentId}`],
+    };
+    const harness = createHarness({ workflowGroupId: groupId });
+
+    const result = await harness.manager.process(buildJob({
+      resourceType: 'Consent',
+      id: consentId,
+      meta: { claims },
+    }));
+
+    expect((result.body as any).data[0]).toMatchObject({
+      response: { status: '201' },
+      resource: { resourceType: 'Consent', id: consentId, meta: { claims } },
     });
     expect((harness.protectConfidentialData.mock.calls.at(-1)?.[0] as any).content).toEqual({ claims });
   });
