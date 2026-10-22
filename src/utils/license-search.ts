@@ -109,7 +109,7 @@ export async function searchLicenseDocuments(
       tenantVaultId,
       getEnvSectionId('device-licenses'),
     )) as ConfidentialStorageDoc[] || [];
-  const licenseDocs = await Promise.all(storedDocuments.map(async (document) => {
+  const resolvedDocuments = await Promise.allSettled(storedDocuments.map(async (document) => {
     if (isDeviceLicense(document.content)) return document;
     if (!unprotect) {
       throw new Error('Encrypted device license cannot be searched without KMS.');
@@ -120,6 +120,9 @@ export async function searchLicenseDocuments(
     }
     return { ...document, content };
   }));
+  const licenseDocs = resolvedDocuments
+    .filter((result): result is PromiseFulfilledResult<ConfidentialStorageDoc> => result.status === 'fulfilled')
+    .map((result) => result.value);
 
   return licenseDocs
     .filter((doc) => matchesLicenseFilters(doc?.content as DeviceLicense & Record<string, any>, filters))

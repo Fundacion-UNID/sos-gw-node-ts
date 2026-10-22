@@ -1,3 +1,4 @@
+// Flow contract: one unreadable historical seat never grants access or prevents valid tenant seats from being listed.
 // Copyright 2026 Antifraud Services Inc. under the Apache License, Version 2.0.
 
 import { describe, expect, it } from '@jest/globals';
@@ -20,6 +21,7 @@ import {
   extractLicenseSearchFilters,
   mapLicenseCategory,
   matchesLicenseFilters,
+  searchLicenseDocuments,
 } from '../../../utils/license-search';
 
 describe('license-search utils', () => {
@@ -73,5 +75,32 @@ describe('license-search utils', () => {
 
     expect(matches).toBe(true);
     expect(mapLicenseCategory(DeviceUserClasses.Employee)).toBe(LicenseCategories.Professional);
+  });
+
+  it('fails closed for one unreadable historical document while returning valid seats', async () => {
+    const validLicense = {
+      id: EXAMPLE_LICENSE_SEAT_UUID_ACTIVE,
+      status: LicenseStatuses.Active,
+      userClass: DeviceUserClasses.Employee,
+      type: DeviceAppTypes.Mobile,
+      issuedToEmail: EXAMPLE_LICENSE_ACTIVE_RECORD.claims[ClaimsPersonSchemaorg.email],
+    };
+    const validDocument = { id: 'valid', content: validLicense };
+    const unreadableDocument = { id: 'legacy-corrupt', content: { protected: 'invalid' } };
+    const repository = {
+      getContainersInSection: jest.fn().mockResolvedValue([unreadableDocument, validDocument]),
+    };
+    const unprotect = jest.fn(async (document: any) => {
+      if (document.id === 'legacy-corrupt') throw new Error('Invalid authentication tag length: 3');
+      return document.content;
+    });
+
+    const rows = await searchLicenseDocuments(repository, 'tenant-vault', {
+      [ClaimsPersonSchemaorg.email]: [EXAMPLE_LICENSE_ACTIVE_RECORD.claims[ClaimsPersonSchemaorg.email]],
+    }, unprotect);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id: EXAMPLE_LICENSE_SEAT_UUID_ACTIVE });
+    expect(unprotect).toHaveBeenCalledTimes(1);
   });
 });
