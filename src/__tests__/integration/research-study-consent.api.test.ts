@@ -5,9 +5,10 @@ import { resolveHostPhysicalCollectionName } from '../../config/storage-layout';
  * 1. A current controller creates a ResearchStudy and associates one PractitionerRole.
  * 2. The role's existing protected creator assignment records completed DCR.
  * 3. The controller explicitly submits an active R5 Consent with ResearchSubject crus scope.
- * 4. The same controller grants exact Encounter workflow and no-read Subject
- *    Composition contribution capabilities only after the employee
- *    PractitionerRole is in each referenced operational Group.
+ * 4. The same controller grants exact Encounter workflow, public
+ *    CommunicationRequest creation and no-read Subject Composition contribution
+ *    capabilities only after the employee PractitionerRole is in each
+ *    referenced operational Group.
  * 5. The controller grants organization-filtered subject registration without Group mutation or clinical read.
  * 6. A repeated research activation is idempotent; the controller can then revoke it.
  * 7. Consent search returns the inactive claims-only record through the same
@@ -28,6 +29,7 @@ import { ClaimConsent, ConsentDecisions, ConsentStatuses } from 'gdc-common-util
 import type { Sector } from 'gdc-common-utils-ts/models/urlPath';
 import { projectResearchStudyR5SearchClaims } from 'vet-data-utils-ts';
 import { buildVeterinaryResearchStudyActiveConsentBatch } from 'vet-sdk-core-ts/research-study';
+import { OrganizationWorkflowCapabilities } from 'sos-data-utils-ts/organization-workflow-access';
 import {
   buildResearchStudyPartyProjectionId,
   buildResearchStudyPartySectionId,
@@ -253,6 +255,59 @@ it('activates one study-scoped Consent through the real HTTP queue and worker bo
       claims: Object.fromEntries(Object.entries(workflowClaims).map(([name, value]) => [name, [value]])),
     });
 
+    const publicAlertGroupId = 'public-alert-publishing-group';
+    const publicAlertGroupReference = `Group/${publicAlertGroupId}`;
+    const publicAlertGroupDocument = await kmsService.protectConfidentialData({
+      id: publicAlertGroupId, status: 'active', sequence: 0,
+      content: { claims: workflowGroupClaims }, indexed: { attributes: [] },
+    } as any, vaultId);
+    await vaultRepository.put(physicalCollection, [publicAlertGroupDocument as any], 'research-groups');
+    const publicAlertMemberDocument = await kmsService.protectConfidentialData({
+      id: buildGroupMemberProjectionId(publicAlertGroupId, practitionerRoleReference),
+      status: 'active', sequence: 0,
+      content: { claims: workflowMemberClaims }, indexed: { attributes: [] },
+    } as any, vaultId);
+    await vaultRepository.put(
+      physicalCollection,
+      [publicAlertMemberDocument as any],
+      buildGroupMemberSectionId(publicAlertGroupId),
+    );
+    const publicAlertConsentId = 'public-alert-publishing-consent';
+    const publicAlertClaims = {
+      ...workflowClaims,
+      [ClaimConsent.sourceReference]: publicAlertGroupReference,
+      [ClaimConsent.action]: OrganizationWorkflowCapabilities.CommunicationRequestCreate,
+      [ClaimConsent.identifier]: `urn:uuid:${publicAlertConsentId}`,
+    };
+    const publicAlertAuthorized = await submitAndPoll(
+      app,
+      authenticatedActor.authorizationHeader,
+      authenticatedActor.actorDid,
+      '_batch',
+      [{
+        request: { method: 'POST', url: 'Consent' },
+        resource: {
+          resourceType: 'Consent',
+          id: publicAlertConsentId,
+          meta: { claims: publicAlertClaims },
+        },
+      }],
+      'workflow-public-alert-publishing-activate',
+    );
+    expect(publicAlertAuthorized.data[0]).toMatchObject({
+      response: { status: '201' },
+      resource: { resourceType: 'Consent', id: publicAlertConsentId },
+    });
+    const storedPublicAlertConsents = await vaultRepository.listContainersInSection<any>(
+      physicalCollection,
+      'organization-workflow-consents',
+    );
+    expect(storedPublicAlertConsents).toHaveLength(2);
+    const protectedPublicAlert = storedPublicAlertConsents.find(record => record.id === publicAlertConsentId);
+    await expect(kmsService.unprotectConfidentialData(protectedPublicAlert, vaultId)).resolves.toEqual({
+      claims: Object.fromEntries(Object.entries(publicAlertClaims).map(([name, value]) => [name, [value]])),
+    });
+
     const clinicalContributionGroupId = 'clinical-contribution-group';
     const clinicalContributionGroupReference = `Group/${clinicalContributionGroupId}`;
     const clinicalContributionGroupDocument = await kmsService.protectConfidentialData({
@@ -300,7 +355,7 @@ it('activates one study-scoped Consent through the real HTTP queue and worker bo
       physicalCollection,
       'organization-workflow-consents',
     );
-    expect(storedClinicalContributionConsents).toHaveLength(2);
+    expect(storedClinicalContributionConsents).toHaveLength(3);
     const protectedClinicalContribution = storedClinicalContributionConsents.find(
       record => record.id === clinicalContributionConsentId,
     );
@@ -355,7 +410,7 @@ it('activates one study-scoped Consent through the real HTTP queue and worker bo
       physicalCollection,
       'organization-workflow-consents',
     );
-    expect(storedSubjectRegistrationConsents).toHaveLength(3);
+    expect(storedSubjectRegistrationConsents).toHaveLength(4);
 
     const revokedClaims = { ...canonicalClaims, [ClaimConsent.status]: [ConsentStatuses.Inactive] };
     const revoked = await submitAndPoll(app, authenticatedActor.authorizationHeader, authenticatedActor.actorDid, '_batch', [{

@@ -10,6 +10,11 @@
   `DocumentReference` batches through claims-first encrypted storage, validate
   the publisher tenant, jurisdiction, sector, topic endpoint, active validity
   period and content hash, and exclude attachment bytes from searchable indexes.
+- Accept the canonical create-only `CommunicationRequest` capability in an
+  operations Consent only for an active professional who belongs to the exact
+  controller-governed Group; this does not grant clinical or personal-card read.
+- Execute the published SOS SDK host-organization directory contract in Jest
+  through the same explicit ESM package mapping used by the other shared SDKs.
 - Add the read-only public dataset-notification discovery projection and keep
   subscriber identities, delivery preferences and attachment bytes outside the
   catalog response.

@@ -9,6 +9,7 @@ import { ClaimConsent, ConsentDecisions, ConsentStatuses } from 'gdc-common-util
 import { IssueLevel, IssueType } from 'gdc-common-utils-ts/models/issue';
 import { ManagerError } from 'gdc-common-utils-ts/utils/manager-error';
 import type { ClinicalCreatorBinding } from 'gdc-common-utils-ts/utils/fhir-ips-creator-identity';
+import { OrganizationWorkflowCapabilities } from 'sos-data-utils-ts/organization-workflow-access';
 import type { IVaultRepository } from '../database/repositories/vault/vault.repository';
 import type { IKmsService } from '../gdc-backend-utils-node/models/IKmsService';
 import { getClinicalCreatorBindingsSectionId } from '../utils/clinical-creator-binding';
@@ -298,6 +299,7 @@ export class ResearchStudyConsentManager implements IJobProcessor {
     if (action !== ENCOUNTER_WORKFLOW_ACTION
       && action !== SCHEDULING_WORKFLOW_ACTION
       && action !== SUBJECT_COMPOSITION_CONTRIBUTION_ACTION
+      && action !== OrganizationWorkflowCapabilities.CommunicationRequestCreate
       && !isOrganizationSubjectRegistrationAction(action, organizationReference)) {
       throw new ManagerError('Organization workflow Consent contains an unsupported capability set.', IssueType.Invalid);
     }
