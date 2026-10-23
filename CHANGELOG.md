@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Return conversion failures in both `OperationOutcome.issue.diagnostics` and
+  the compatibility `details.text` projection without changing persistence.
+
 - Add the host-operator-only, DIDComm `org.schema` Organization directory
   search with privacy-minimized paginated Bundle readback, lifecycle filters,
   OperationOutcome failures and exact configured-host-administrator gating.
