@@ -2008,6 +2008,8 @@ describe('CommunicationManager Unit Tests', () => {
       expect((result.body as any).data[0].response.status).toBe('500');
       expect((result.body as any).data[0].response.outcome.issue[0].details.text)
         .toContain('requires one explicit Composition.section');
+      expect((result.body as any).data[0].response.outcome.issue[0].diagnostics)
+        .toContain('requires one explicit Composition.section');
       expect(mockVaultRepository.put.mock.calls.some(
         (args) => args[2] === getSubjectScopedSectionId(subjectDid, 'individual', 'allergies'),
       )).toBe(false);

@@ -394,6 +394,7 @@ export class CommunicationManager implements IJobProcessor {
         });
 
       } catch (error) {
+        const diagnostics = error instanceof Error ? error.message : 'Unknown error during conversion.';
         const identifierClaim =
           (entry as any)?.resource?.meta?.claims?.[CommunicationClaim.Identifier] ??
           (entry as any)?.resource?.id;
@@ -406,7 +407,8 @@ export class CommunicationManager implements IJobProcessor {
               issue: [{
                 severity: 'error',
                 code: 'processing',
-                details: { text: error instanceof Error ? error.message : 'Unknown error during conversion.' },
+                diagnostics,
+                details: { text: diagnostics },
               }],
             }
           },
