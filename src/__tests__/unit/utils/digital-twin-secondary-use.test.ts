@@ -6,6 +6,7 @@ import { VaultMemRepository } from '../../../database/repositories/vault/vault.m
 import {
   applyDigitalTwinSecondaryUseDecision,
   isDigitalTwinSecondaryUseEnabled,
+  listEnabledDigitalTwinStudyTargets,
   purgeDigitalTwinSubjectLink,
 } from '../../../utils/digital-twin-secondary-use';
 import {
@@ -50,6 +51,88 @@ describe('digital twin secondary-use lifecycle', () => {
       tenantVaultId,
       twinSubjectId: 'urn:uuid:00000000-0000-4000-8000-000000000999',
     })).toBe(false);
+  });
+
+  it('allocates an unlinkable twin per ResearchStudy instead of one twin per person', async () => {
+    const vaultRepository = new VaultMemRepository();
+    const studyA = 'https://research.example/studies/alpha';
+    const studyB = 'https://research.example/studies/beta';
+
+    const twinA = await getOrCreateDigitalTwinSubjectId({
+      vaultRepository, tenantVaultId, sourceSubject, researchUseReference: studyA,
+    });
+    const twinAReplay = await getOrCreateDigitalTwinSubjectId({
+      vaultRepository, tenantVaultId, sourceSubject, researchUseReference: studyA,
+    });
+    const twinB = await getOrCreateDigitalTwinSubjectId({
+      vaultRepository, tenantVaultId, sourceSubject, researchUseReference: studyB,
+    });
+
+    expect(twinAReplay).toBe(twinA);
+    expect(twinB).not.toBe(twinA);
+    expect(await vaultRepository.listContainersInSection<any>(
+      tenantVaultId,
+      getDigitalTwinSubjectAliasSectionId(),
+    )).toEqual(expect.arrayContaining([
+      expect.objectContaining({ twinSubjectId: twinA, researchUseReference: studyA }),
+      expect.objectContaining({ twinSubjectId: twinB, researchUseReference: studyB }),
+    ]));
+  });
+
+  it('keeps study participation decisions and projection targets independent', async () => {
+    const vaultRepository = new VaultMemRepository();
+    const studyA = 'https://research.example/studies/alpha';
+    const studyB = 'https://research.example/studies/beta';
+    await vaultRepository.put(tenantVaultId, [{
+      id: 'verified-composition',
+      'Composition.identifier': 'urn:uuid:verified-composition',
+      'Composition.subject': sourceSubject,
+      'Composition.section': 'LOINC|8716-3',
+      'Composition.status': 'final',
+      ...professionalProvenance,
+    }], getSubjectScopedSectionId(sourceSubject, 'individual', 'composition'));
+
+    for (const researchUseReference of [studyA, studyB]) {
+      await applyDigitalTwinSecondaryUseDecision({
+        vaultRepository,
+        tenantVaultId,
+        claims: {
+          ...baseClaims,
+          [ClaimConsent.sourceReference]: researchUseReference,
+          [ClaimConsent.decision]: 'permit',
+        },
+      });
+    }
+
+    const targets = await listEnabledDigitalTwinStudyTargets({
+      vaultRepository, tenantVaultId, sourceSubject,
+    });
+    expect(targets).toHaveLength(2);
+    expect(new Set(targets.map((target) => target.twinSubjectId)).size).toBe(2);
+    expect(targets.map((target) => target.researchUseReference).sort()).toEqual([studyA, studyB]);
+    expect(targets.every((target) => typeof target.lastSharedAt === 'string')).toBe(true);
+
+    await applyDigitalTwinSecondaryUseDecision({
+      vaultRepository,
+      tenantVaultId,
+      claims: {
+        ...baseClaims,
+        [ClaimConsent.sourceReference]: studyA,
+        [ClaimConsent.decision]: 'deny',
+      },
+    });
+
+    expect(await isDigitalTwinSecondaryUseEnabled({
+      vaultRepository, tenantVaultId, sourceSubject, researchUseReference: studyA,
+    })).toBe(false);
+    expect(await isDigitalTwinSecondaryUseEnabled({
+      vaultRepository, tenantVaultId, sourceSubject, researchUseReference: studyB,
+    })).toBe(true);
+    expect(await listEnabledDigitalTwinStudyTargets({
+      vaultRepository, tenantVaultId, sourceSubject,
+    })).toEqual([
+      expect.objectContaining({ researchUseReference: studyB }),
+    ]);
   });
 
   it('disables synchronization without deleting the published twin and rebuilds one multi-section Composition when re-enabled', async () => {
@@ -237,13 +320,15 @@ describe('digital twin secondary-use lifecycle', () => {
 
   it('keeps projection enabled while another portal or study still permits use', async () => {
     const vaultRepository = new VaultMemRepository();
-    const consentSection = getSubjectScopedSectionId(sourceSubject, 'individual', 'consents');
-    await vaultRepository.put(tenantVaultId, [{
-      id: 'study-b',
-      ...baseClaims,
-      [ClaimConsent.sourceReference]: studyConsentSource,
-      [ClaimConsent.decision]: 'permit',
-    }], consentSection);
+    await applyDigitalTwinSecondaryUseDecision({
+      vaultRepository,
+      tenantVaultId,
+      claims: {
+        ...baseClaims,
+        [ClaimConsent.sourceReference]: studyConsentSource,
+        [ClaimConsent.decision]: 'permit',
+      },
+    });
 
     await applyDigitalTwinSecondaryUseDecision({
       vaultRepository,

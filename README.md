@@ -59,6 +59,7 @@ Start with [the documentation index](docs/README.md):
 - [Architecture](docs/architecture.md)
 - [Getting started](docs/getting-started.md)
 - [API and interoperability](docs/api-and-interoperability.md)
+- [Identifier-free public-health statistics](docs/PUBLIC_HEALTH_STATISTICS.md)
 - [Security and deployment](docs/security-and-deployment.md)
 - [Upstream projects and history](docs/upstream-and-history.md)
 

@@ -26,6 +26,14 @@ export class ManageAssetArtifact extends ManageAsset {
   ): Promise<{ result: object; transactionId: string }> {
     return this.submitWithTransactionId(mspId, 'UpsertResearchVersions', JSON.stringify(payload));
   }
+
+  /** Stores immutable identifier-free population statistics. */
+  public async upsertPublicHealthStatisticsWithTransactionId(
+    mspId: string,
+    payload: object,
+  ): Promise<{ result: object; transactionId: string }> {
+    return this.submitWithTransactionId(mspId, 'UpsertPublicHealthStatistics', JSON.stringify(payload));
+  }
 }
 
 export const manageAssetArtifact = new ManageAssetArtifact();

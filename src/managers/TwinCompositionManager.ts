@@ -178,6 +178,9 @@ export class TwinCompositionManager {
     const subject = this.normalizeReference(getClaimValue<string>(this.indexedClaims(composition), 'Composition.subject'));
     if (!subject) throw new Error('Digital twin canonical Composition is missing Composition.subject.');
     const logicalId = subject.startsWith('urn:uuid:') ? subject.slice('urn:uuid:'.length) : subject;
+    const studyReference = this.normalizeReference(
+      getClaimValue<string>(this.indexedClaims(composition), '__digitalTwinStudy.reference'),
+    );
 
     if (format === 'org.hl7.fhir.r4' || format === 'org.hl7.fhir.r5') {
       const containedComposition = buildFhirResourceFromIndexedClaims('Composition', {
@@ -195,6 +198,7 @@ export class TwinCompositionManager {
         id: logicalId,
         identifier: [{ value: subject }],
         status: 'candidate',
+        ...(studyReference ? { study: { reference: studyReference } } : {}),
         contained: [{
           ...containedComposition,
           resourceType: 'Composition',
@@ -209,6 +213,7 @@ export class TwinCompositionManager {
       ? composition.meta.claims
       : composition;
     const publicClaims = canonicalizeFhirClaims(nestedClaims, 'org.hl7.fhir.api');
+    delete publicClaims['__digitalTwinStudy.reference'];
     return {
       resourceType: 'ResearchSubject',
       id: logicalId,
@@ -217,6 +222,7 @@ export class TwinCompositionManager {
           ...publicClaims,
           'ResearchSubject.identifier': subject,
           'ResearchSubject.status': 'candidate',
+          ...(studyReference ? { 'ResearchSubject.study': studyReference } : {}),
         },
       },
     };

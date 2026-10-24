@@ -23,8 +23,9 @@ foundation's original design or version-specific reference.
 7. [BFF Node runtime integration](BFF_NODE_RUNTIME.md)
 8. [Getting started](getting-started.md)
 9. [API and interoperability](api-and-interoperability.md)
-10. [Security and deployment](security-and-deployment.md)
-11. [Upstream projects and history](upstream-and-history.md)
+10. [Identifier-free public-health statistics](PUBLIC_HEALTH_STATISTICS.md)
+11. [Security and deployment](security-and-deployment.md)
+12. [Upstream projects and history](upstream-and-history.md)
 
 ## Sources of truth
 

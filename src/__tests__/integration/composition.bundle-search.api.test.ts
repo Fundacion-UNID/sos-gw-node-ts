@@ -913,7 +913,7 @@ describe('Composition Bundle _search API (integration)', () => {
 
       const aliases = await vaultRepository.getContainersInSection<any>(tenantVaultId, getDigitalTwinSubjectAliasSectionId());
       const twinSubjectId = aliases.find((alias: any) =>
-        alias.id === createHash('sha256').update(subjectDid).digest('hex'))?.twinSubjectId;
+        alias.sourceSubjectHash === createHash('sha256').update(subjectDid).digest('hex'))?.twinSubjectId;
       const digitalTwinMedicationsSection = getSubjectScopedSectionId(twinSubjectId, 'digitaltwin', 'medications');
       const digitalTwinObservationsSection = getSubjectScopedSectionId(twinSubjectId, 'digitaltwin', 'observations');
       const digitalTwinCompositionSection = getSubjectScopedSectionId(twinSubjectId, 'digitaltwin', 'composition');
@@ -1275,7 +1275,7 @@ describe('Composition Bundle _search API (integration)', () => {
       expect(preliminarySectionPayload?.data?.[0]?.response?.status).toBe('200');
       const sectionAliases = await vaultRepository.getContainersInSection<any>(tenantVaultId, getDigitalTwinSubjectAliasSectionId());
       const sectionTwinSubjectId = sectionAliases.find((alias: any) =>
-        alias.id === createHash('sha256').update(sectionSubjectDid).digest('hex'))?.twinSubjectId;
+        alias.sourceSubjectHash === createHash('sha256').update(sectionSubjectDid).digest('hex'))?.twinSubjectId;
       expect(await vaultRepository.getContainersInSection<any>(
         tenantVaultId,
         getSubjectScopedSectionId(sectionTwinSubjectId, 'digitaltwin', 'allergies'),
@@ -1373,7 +1373,7 @@ describe('Composition Bundle _search API (integration)', () => {
 
       const researchAliases = await vaultRepository.getContainersInSection<any>(tenantVaultId, getDigitalTwinSubjectAliasSectionId());
       const twinFor = (source: string) => researchAliases.find((alias: any) =>
-        alias.id === createHash('sha256').update(source).digest('hex'))?.twinSubjectId;
+        alias.sourceSubjectHash === createHash('sha256').update(source).digest('hex'))?.twinSubjectId;
       const searchCases = [
         {
           // Basic portal search: sections are repeated, text is
@@ -1645,7 +1645,7 @@ describe('Composition Bundle _search API (integration)', () => {
       await setResearchDecision('permit', 'permit-after-provider-return');
       const aliasesAfterReturn = await vaultRepository.getContainersInSection<any>(tenantVaultId, getDigitalTwinSubjectAliasSectionId());
       const replacementTwinSubjectId = aliasesAfterReturn.find((alias: any) =>
-        alias.id === createHash('sha256').update(subjectDid).digest('hex'))?.twinSubjectId;
+        alias.sourceSubjectHash === createHash('sha256').update(subjectDid).digest('hex'))?.twinSubjectId;
       expect(replacementTwinSubjectId).toMatch(/^urn:uuid:/);
       expect(replacementTwinSubjectId).not.toBe(twinSubjectId);
       expect(await vaultRepository.getContainersInSection(tenantVaultId, digitalTwinCompositionSection)).toHaveLength(compositionRecords.length);
@@ -1962,7 +1962,7 @@ describe('Composition Bundle _search API (integration)', () => {
 
       const aliases = await vaultRepository.getContainersInSection<any>(tenantVaultId, getDigitalTwinSubjectAliasSectionId());
       const twinSubjectId = aliases.find((alias: any) =>
-        alias.id === createHash('sha256').update(subjectDid).digest('hex'))?.twinSubjectId;
+        alias.sourceSubjectHash === createHash('sha256').update(subjectDid).digest('hex'))?.twinSubjectId;
 
       const searchResp = await invokeExpress(app, {
         method: 'POST',

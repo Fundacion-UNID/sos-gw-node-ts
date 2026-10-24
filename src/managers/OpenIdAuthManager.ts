@@ -470,6 +470,7 @@ export class OpenIdAuthManager implements IJobProcessor {
         vaultRepository: this.vaultRepository,
         tenantVaultId,
         sourceSubject: subject,
+        researchUseReference: study || undefined,
       });
       grantedScope = grantedScope.split(/\s+/).map((scopeToken) => {
         const [head, query = ''] = scopeToken.split('?');

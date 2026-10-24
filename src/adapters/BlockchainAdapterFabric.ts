@@ -8,6 +8,7 @@ import {
   VERSION_ASSET_RESOURCE_TYPE,
   type ResearchAssetVersionMapping,
 } from '../utils/research-asset-versioning';
+import type { PublicHealthStatisticLedgerMapping } from '../utils/public-health-statistics';
 import type { IBlockchainAdapter } from './IBlockchainAdapter';
 
 type FabricBlockchainConfig = {
@@ -36,6 +37,36 @@ function loadFabricBlockchainConfig(): FabricBlockchainConfig {
  * registration does not currently expose DID discovery semantics.
  */
 export class BlockchainAdapterFabric implements IBlockchainAdapter {
+  public async registerPublicHealthStatistics(
+    mappings: PublicHealthStatisticLedgerMapping[],
+    channel: string,
+    chaincode: string,
+  ): Promise<{ accepted: number; txId?: string }> {
+    const config = loadFabricBlockchainConfig();
+    const manager = new ManageAssetArtifact({ chaincodeName: chaincode, channelName: channel });
+    const data = mappings.map(({ statisticId, contribution }) => ({
+      type: 'PublicHealthStatistic',
+      id: statisticId,
+      resource: {
+        resourceType: 'PublicHealthStatistic',
+        collectionPurpose: contribution.collectionPurpose,
+        subjectKind: contribution.projection.subjectKind,
+        section: contribution.projection.section,
+        coding: {
+          system: contribution.projection.codingSystem,
+          code: contribution.projection.code,
+        },
+        jurisdiction: contribution.projection.jurisdiction,
+        occurredOn: contribution.projection.occurredOn,
+        ...(contribution.projection.demographics
+          ? { demographics: contribution.projection.demographics }
+          : {}),
+      },
+    }));
+    const submitted = await manager.upsertPublicHealthStatisticsWithTransactionId(config.mspId, { data });
+    return { accepted: data.length, txId: submitted.transactionId };
+  }
+
   public async registerResearchVersionMappings(
     mappings: ResearchAssetVersionMapping[],
     channel: string,

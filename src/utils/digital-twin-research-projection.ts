@@ -33,6 +33,10 @@ export type DigitalTwinSubjectAlias = RecordBase & {
   type: 'digital-twin-subject-alias';
   sourceSubjectHash: string;
   twinSubjectId: string;
+  /** Globally scoped study/service reference. Absent only on legacy aliases. */
+  researchUseReference?: string;
+  createdAt?: string;
+  lastSharedAt?: string;
 };
 
 const BLOCKED_RESEARCH_CLAIM_SEGMENT = /(?:^|[.\-_])(display|text|title|description|note|instruction|name|address|telecom|contact|narrative)(?:$|[.\-_])/i;
@@ -51,6 +55,14 @@ const FINALIZED_COMPOSITION_STATUSES = new Set(['final', 'amended']);
 
 function sourceSubjectHash(sourceSubject: string): string {
   return createHash('sha256').update(String(sourceSubject || '').trim(), 'utf8').digest('hex');
+}
+
+/** Builds the private alias key without exposing the operational subject. */
+export function buildDigitalTwinSubjectAliasId(sourceSubject: string, researchUseReference?: string): string {
+  const normalizedSource = String(sourceSubject || '').trim();
+  const normalizedReference = String(researchUseReference || '').trim();
+  if (!normalizedSource) throw new Error('sourceSubject is required');
+  return sourceSubjectHash(normalizedReference ? `${normalizedSource}|${normalizedReference}` : normalizedSource);
 }
 
 function stableResearchUuid(seed: string): string {
@@ -97,10 +109,12 @@ export async function getOrCreateDigitalTwinSubjectId(input: {
   vaultRepository: IVaultRepository;
   tenantVaultId: string;
   sourceSubject: string;
+  researchUseReference?: string;
 }): Promise<string> {
   const normalizedSource = String(input.sourceSubject || '').trim();
   if (!normalizedSource) throw new Error('sourceSubject is required');
-  const id = sourceSubjectHash(normalizedSource);
+  const researchUseReference = String(input.researchUseReference || '').trim();
+  const id = buildDigitalTwinSubjectAliasId(normalizedSource, researchUseReference);
   const sectionId = getDigitalTwinSubjectAliasSectionId();
   const existing = typeof input.vaultRepository.get === 'function'
     ? await input.vaultRepository.get<DigitalTwinSubjectAlias>(input.tenantVaultId, id, sectionId)
@@ -110,10 +124,34 @@ export async function getOrCreateDigitalTwinSubjectId(input: {
   }
 
   const twinSubjectId = `urn:uuid:${randomUUID()}`;
+  const createdAt = new Date().toISOString();
   await input.vaultRepository.put<DigitalTwinSubjectAlias>(input.tenantVaultId, [{
-    id, type: 'digital-twin-subject-alias', sourceSubjectHash: id, twinSubjectId,
+    id,
+    type: 'digital-twin-subject-alias',
+    sourceSubjectHash: sourceSubjectHash(normalizedSource),
+    twinSubjectId,
+    createdAt,
+    ...(researchUseReference ? { researchUseReference } : {}),
   }], sectionId);
   return twinSubjectId;
+}
+
+/** Records only the latest successful projection time in the private alias index. */
+export async function markDigitalTwinStudyTargetShared(input: {
+  vaultRepository: IVaultRepository;
+  tenantVaultId: string;
+  sourceSubject: string;
+  researchUseReference?: string;
+  sharedAt?: string;
+}): Promise<void> {
+  const id = buildDigitalTwinSubjectAliasId(input.sourceSubject, input.researchUseReference);
+  const sectionId = getDigitalTwinSubjectAliasSectionId();
+  const alias = await input.vaultRepository.get<DigitalTwinSubjectAlias>(input.tenantVaultId, id, sectionId);
+  if (!alias?.twinSubjectId) throw new Error('Digital twin study target is not registered');
+  await input.vaultRepository.put<DigitalTwinSubjectAlias>(input.tenantVaultId, [{
+    ...alias,
+    lastSharedAt: input.sharedAt || new Date().toISOString(),
+  }], sectionId);
 }
 
 export function isDigitalTwinResearchResourceType(resourceType: string): boolean {

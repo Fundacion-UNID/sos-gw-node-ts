@@ -109,6 +109,133 @@ describe("ArtifactContract", () => {
     expect(replay.data[1].resource.meta.audit.version).to.equal(2);
   });
 
+  it("stores immutable identifier-free public clinical statistics separately from user reports", async () => {
+    const clinical = {
+      type: "PublicHealthStatistic",
+      id: "8c942c42-6d54-4f76-97ef-058953b21001",
+      resource: {
+        resourceType: "PublicHealthStatistic",
+        collectionPurpose: "public-clinical-statistics",
+        subjectKind: "human",
+        section: "http://loinc.org|11450-4",
+        coding: { system: "http://snomed.info/sct", code: "386661006" },
+        jurisdiction: "CA-BC",
+        occurredOn: "2026-10-23",
+        demographics: { ageBand: "40-49", sex: "female" },
+      },
+    };
+    const userReport = {
+      ...clinical,
+      id: "8c942c42-6d54-4f76-97ef-058953b21002",
+      resource: {
+        ...clinical.resource,
+        collectionPurpose: "public-health-user-reports",
+      },
+    };
+    const ctx = createContractContext({ txSeconds: 12, txId: "TX-PUBLIC-STATISTICS-1" });
+
+    const result = await contract.UpsertPublicHealthStatistics(ctx, JSON.stringify({ data: [clinical, userReport] }));
+
+    expect(result.data.map((entry) => entry.type)).to.deep.equal(["PublicHealthStatistic", "PublicHealthStatistic"]);
+    expect(ctx.readJson(clinical.id)).to.include({
+      artifactType: "public-health-statistic",
+    });
+    expect(ctx.readJson(clinical.id)).not.to.have.property("hash");
+    expect(ctx.readJson(clinical.id).meta.attributes).to.deep.equal(clinical.resource);
+    expect(ctx.readJson(userReport.id).meta.attributes.collectionPurpose).to.equal("public-health-user-reports");
+    expect(JSON.stringify(result)).not.to.match(/subjectDid|patientId|organizationDid|description|freeText/);
+
+    const replayCtx = createContractContext({
+      txSeconds: 13,
+      txId: "TX-PUBLIC-STATISTICS-2",
+      existingState: { [clinical.id]: ctx.readJson(clinical.id) },
+    });
+    const replay = await contract.upsertPublicHealthStatistics(replayCtx, JSON.stringify({ data: [clinical] }));
+    expect(replay.data[0].resource.meta.audit.version).to.equal(1);
+    expect(replayCtx.writes).to.have.length(0);
+  });
+
+  it("rejects identifying, mutable, uncoded or malformed public statistics", async () => {
+    const valid = {
+      type: "PublicHealthStatistic",
+      id: "8c942c42-6d54-4f76-97ef-058953b21001",
+      resource: {
+        resourceType: "PublicHealthStatistic",
+        collectionPurpose: "public-clinical-statistics",
+        subjectKind: "animal",
+        section: "http://loinc.org|11450-4",
+        coding: { system: "http://snomed.info/sct", code: "386661006" },
+        jurisdiction: "CA-BC",
+        occurredOn: "2026-10-23",
+        demographics: { speciesTaxonomyId: "9615", ageBand: "5-9", sex: "female" },
+      },
+    };
+    const reject = async (entry, message) => expect(
+      contract.UpsertPublicHealthStatistics(createContractContext(), JSON.stringify({ data: [entry] })),
+    ).to.be.rejectedWith(message);
+
+    for (const payload of [{}, { data: [] }]) {
+      await expect(contract.UpsertPublicHealthStatistics(createContractContext(), JSON.stringify(payload)))
+        .to.be.rejectedWith("payload.data must be a non-empty array");
+    }
+    for (const entry of [undefined, null, [], "statistic"]) {
+      await reject(entry, "must be an object");
+    }
+    await reject({ ...valid, id: "source-resource-id" }, "id must be an opaque UUID");
+    await reject({ ...valid, id: undefined }, "id must be an opaque UUID");
+    await reject({ ...valid, type: "ResearchAsset" }, "type must be PublicHealthStatistic");
+    for (const resource of [undefined, null, [], "statistic"]) {
+      await reject({ ...valid, resource }, "resource must be an object");
+    }
+    await reject({ ...valid, resource: { ...valid.resource, resourceType: "ResearchAsset" } }, "resourceType must be PublicHealthStatistic");
+    await reject({ ...valid, resource: { ...valid.resource, subjectDid: RAW_IDENTITY_REFERENCE } }, "unsupported field subjectDid");
+    await reject({ ...valid, resource: { ...valid.resource, description: "identifying free text" } }, "unsupported field description");
+    for (const field of ["collectionPurpose", "subjectKind", "section", "jurisdiction", "occurredOn"]) {
+      await reject({ ...valid, resource: { ...valid.resource, [field]: "" } }, `${field} is required`);
+    }
+    await reject({ ...valid, resource: { ...valid.resource, documentHash: AUTHOR_HASH } }, "unsupported field documentHash");
+    await reject({ ...valid, resource: { ...valid.resource, subjectKind: "organization" } }, "subjectKind is invalid");
+    for (const section of ["11450-4", "not-a-uri|11450-4", "http://loinc.org|"]) {
+      await reject({ ...valid, resource: { ...valid.resource, section } }, "section must be system|code");
+    }
+    await reject({ ...valid, resource: { ...valid.resource, jurisdiction: "CANADA" } }, "jurisdiction is invalid");
+    for (const occurredOn of ["2026-10-23T12:34:56Z", "2026-99-99", "2026-02-31"]) {
+      await reject({ ...valid, resource: { ...valid.resource, occurredOn } }, "occurredOn must be a date");
+    }
+    await reject({ ...valid, resource: { ...valid.resource, collectionPurpose: "private-organization-dataset" } }, "collectionPurpose is invalid");
+    for (const coding of [undefined, null, [], "code", {}, { system: "not-a-uri", code: "386661006" }, { system: "http://snomed.info/sct" }, { system: "http://snomed.info/sct", code: "386661006", display: "Fever" }]) {
+      await reject({ ...valid, resource: { ...valid.resource, coding } }, "coding must contain system and code");
+    }
+    for (const demographics of [null, [], "demographics"]) {
+      await reject({ ...valid, resource: { ...valid.resource, demographics } }, "demographics must be an object");
+    }
+    await reject({ ...valid, resource: { ...valid.resource, demographics: { name: "animal" } } }, "demographics has unsupported field name");
+    await reject({ ...valid, resource: { ...valid.resource, demographics: { speciesTaxonomyId: "dog" } } }, "speciesTaxonomyId is invalid");
+    await reject({ ...valid, resource: { ...valid.resource, subjectKind: "human", demographics: { speciesTaxonomyId: "9606" } } }, "speciesTaxonomyId is forbidden for human statistics");
+    await reject({ ...valid, resource: { ...valid.resource, demographics: { ageBand: "7" } } }, "ageBand is invalid");
+
+    const noDemographics = { ...valid, id: "8c942c42-6d54-4f76-97ef-058953b21003", resource: { ...valid.resource, demographics: {} } };
+    const noDemographicsCtx = createContractContext();
+    await contract.UpsertPublicHealthStatistics(noDemographicsCtx, JSON.stringify({ data: [noDemographics] }));
+    expect(noDemographicsCtx.readJson(noDemographics.id).meta.attributes).not.to.have.property("demographics");
+    const { demographics: _omitted, ...resourceWithoutDemographics } = valid.resource;
+    const omittedDemographics = {
+      ...valid,
+      id: "8c942c42-6d54-4f76-97ef-058953b21004",
+      resource: resourceWithoutDemographics,
+    };
+    await contract.UpsertPublicHealthStatistics(noDemographicsCtx, JSON.stringify({ data: [omittedDemographics] }));
+    expect(noDemographicsCtx.readJson(omittedDemographics.id).meta.attributes).not.to.have.property("demographics");
+
+    const seedCtx = createContractContext();
+    await contract.UpsertPublicHealthStatistics(seedCtx, JSON.stringify({ data: [valid] }));
+    const previous = seedCtx.readJson(valid.id);
+    const updateCtx = createContractContext({ existingState: { [valid.id]: previous } });
+    await expect(contract.UpsertPublicHealthStatistics(updateCtx, JSON.stringify({
+      data: [{ ...valid, resource: { ...valid.resource, coding: { ...valid.resource.coding, code: "changed" } } }],
+    }))).to.be.rejectedWith("public statistics are immutable");
+  });
+
   it("rejects malformed, identifying, uncoded, or unlinked research asset pairs", async () => {
     const valid = {
       researchAsset: {

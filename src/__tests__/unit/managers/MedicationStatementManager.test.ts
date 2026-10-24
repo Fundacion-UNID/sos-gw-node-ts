@@ -8,9 +8,11 @@ import { JobRequest, JobStatus } from 'gdc-common-utils-ts/models/confidential-j
 import { getSubjectScopedSectionId } from '../../../utils/individual-sections';
 import { getEnvSectionId } from '../../../utils/section-env';
 import { SearchResponseProfileEnvironment, SearchResponseProfiles } from '../../../utils/didcomm-response';
-import { applyDigitalTwinSecondaryUseDecision } from '../../../utils/digital-twin-secondary-use';
+import {
+  applyDigitalTwinSecondaryUseDecision,
+  listEnabledDigitalTwinStudyTargets,
+} from '../../../utils/digital-twin-secondary-use';
 import { buildDemoResearchPermitByRoleConsent } from '../../data/demo-smart-access-local-network.data';
-import { getOrCreateDigitalTwinSubjectId } from '../../../utils/digital-twin-research-projection';
 import { CompositionClaim, ConfidentialDocumentIndex } from 'gdc-common-utils-ts';
 import {
   EXAMPLE_PROVIDER_ORGANIZATION_DID,
@@ -48,7 +50,10 @@ describe('MedicationStatementManager', () => {
       storedRecords.get(`${vaultId}|${sectionId}|${id}`));
     mockVaultRepository.query.mockResolvedValue([] as any);
     mockVaultRepository.getAllSections.mockResolvedValue([] as any);
-    mockVaultRepository.listContainersInSection.mockResolvedValue([] as any);
+    mockVaultRepository.listContainersInSection.mockImplementation(async (vaultId: string, sectionId: string) =>
+      Array.from(storedRecords.entries())
+        .filter(([key]) => key.startsWith(`${vaultId}|${sectionId}|`))
+        .map(([, record]) => record) as any);
   });
 
   const createBatchJob = (overrides: Partial<JobRequest> = {}): JobRequest => ({
@@ -144,16 +149,17 @@ describe('MedicationStatementManager', () => {
       tenantVaultId: 'health-care_acme',
       claims: { ...buildDemoResearchPermitByRoleConsent({ subjectDid: 'Organization/subject-001' }) },
     });
-    const twinSubjectId = await getOrCreateDigitalTwinSubjectId({
+    const [target] = await listEnabledDigitalTwinStudyTargets({
       vaultRepository: mockVaultRepository,
       tenantVaultId: 'health-care_acme',
       sourceSubject: 'Organization/subject-001',
     });
+    const twinSubjectId = target.twinSubjectId;
     mockVaultRepository.put.mockClear();
     const job = createBatchJob();
     await manager.process(job);
 
-    expect(mockVaultRepository.put).toHaveBeenCalledTimes(2);
+    expect(mockVaultRepository.put).toHaveBeenCalledTimes(3);
     const digitalTwinSectionId = getSubjectScopedSectionId(twinSubjectId, 'digitaltwin', 'medications');
     const digitalTwinPutArgs = (mockVaultRepository.put as any).mock.calls.find((args: any[]) => args[2] === digitalTwinSectionId);
     expect(digitalTwinPutArgs[0]).toBe('health-care_acme');
@@ -162,6 +168,9 @@ describe('MedicationStatementManager', () => {
     const subjectKey = Object.keys(researchRecord).find((key) => key.endsWith('MedicationStatement.subject'));
     expect(researchRecord[subjectKey as string]).toBe(twinSubjectId);
     expect(Object.keys(researchRecord).some((key) => key.endsWith('MedicationStatement.medication-text'))).toBe(false);
+    const aliasUpdate = (mockVaultRepository.put as any).mock.calls.find((args: any[]) =>
+      String(args[2]).includes('digitaltwin_subject_aliases') && args[1][0].lastSharedAt);
+    expect(aliasUpdate?.[1][0].lastSharedAt).toEqual(expect.any(String));
   });
 
   it('registers a code-only research parent and opaque version after the private professional projection', async () => {
@@ -228,11 +237,12 @@ describe('MedicationStatementManager', () => {
       tenantVaultId: 'health-care_acme',
       claims: { ...buildDemoResearchPermitByRoleConsent({ subjectDid: 'Organization/subject-001' }) },
     });
-    const twinSubjectId = await getOrCreateDigitalTwinSubjectId({
+    const [target] = await listEnabledDigitalTwinStudyTargets({
       vaultRepository: mockVaultRepository,
       tenantVaultId: 'health-care_acme',
       sourceSubject: 'Organization/subject-001',
     });
+    const twinSubjectId = target.twinSubjectId;
     mockVaultRepository.put.mockClear();
     const job = createBatchJob();
     const claims = (job.content as any).body.entry[0].resource.meta.claims;

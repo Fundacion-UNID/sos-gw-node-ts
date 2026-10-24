@@ -1,5 +1,7 @@
 // src/adapters/IBlockchainAdapter.ts
 
+import type { PublicHealthStatisticLedgerMapping } from '../utils/public-health-statistics';
+
 /**
  * Defines the standardized interface for interacting with a blockchain network
  * for the purpose of identity discovery. This allows the application's business logic
@@ -53,6 +55,13 @@ export interface IBlockchainAdapter {
         userSelected?: boolean;
       }>;
     }>,
+    channel: string,
+    chaincode: string,
+  ): Promise<{ accepted: number; txId?: string }>;
+
+  /** Registers identifier-free statistics in the manager-selected research channel. */
+  registerPublicHealthStatistics?(
+    mappings: PublicHealthStatisticLedgerMapping[],
     channel: string,
     chaincode: string,
   ): Promise<{ accepted: number; txId?: string }>;

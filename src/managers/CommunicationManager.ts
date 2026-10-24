@@ -50,13 +50,15 @@ import { persistConsentRuleAndAttachment } from '../utils/consent-storage';
 import { SUBJECT_SECTION_DIGITAL_TWIN, SUBJECT_SECTION_INDIVIDUAL } from '../constants/domain';
 import { GatewayResponseEntryTypes } from '../shared/gateway-response-types';
 import {
-  getOrCreateDigitalTwinSubjectId,
   isFinalizedDigitalTwinResearchRecord,
   isDigitalTwinResearchResourceType,
   isProfessionallyAttestedResearchRecord,
+  markDigitalTwinStudyTargetShared,
   resolveAndProjectClaimsForDigitalTwin,
 } from '../utils/digital-twin-research-projection';
-import { isDigitalTwinSecondaryUseEnabled } from '../utils/digital-twin-secondary-use';
+import {
+  listEnabledDigitalTwinStudyTargets,
+} from '../utils/digital-twin-secondary-use';
 import { getAuthenticatedJobActorIdentifiers } from '../utils/authenticated-job-actor';
 import { ClaimConsent, ConsentStatuses } from 'gdc-common-utils-ts/models/consent-rule';
 import { canonicalizeBundleEntryMetadata } from '../utils/canonical-entry-metadata';
@@ -84,6 +86,11 @@ import {
   type ResearchAssetVersionMapping,
 } from '../utils/research-asset-versioning';
 import { createOperationOutcome } from '../utils/outcome';
+import { PublicHealthStatisticsContributionPaths } from 'sos-data-utils-ts/public-health-statistics-policy';
+import {
+  buildPublicHealthStatisticLedgerMappingFromClinicalClaims,
+  buildPublicHealthStatisticLedgerMappingFromSelfReport,
+} from '../utils/public-health-statistics';
 
 type SupportedProjectedResourceType =
   | 'MedicationStatement'
@@ -852,32 +859,42 @@ export class CommunicationManager implements IJobProcessor {
     await this.vaultRepository.put(tenantVaultId, [record], individualSectionId);
     if (!isFinalizedDigitalTwinResearchRecord(ResourceTypesFhirR4.Composition, claims)) return;
     if (!isProfessionallyAttestedResearchRecord(claims)) return;
-    if (!await isDigitalTwinSecondaryUseEnabled({
-      vaultRepository: this.vaultRepository,
-      tenantVaultId,
-      sourceSubject: subject,
-    })) return;
-    const twinSubjectId = await getOrCreateDigitalTwinSubjectId({
+    const studyTargets = await listEnabledDigitalTwinStudyTargets({
       vaultRepository: this.vaultRepository,
       tenantVaultId,
       sourceSubject: subject,
     });
-    const { claims: researchClaims } = await resolveAndProjectClaimsForDigitalTwin({
-      claims,
-      resourceType: ResourceTypesFhirR4.Composition,
-      twinSubjectId,
-      sector: String(job.sector || ''),
-      jurisdiction: String(job.jurisdiction || ''),
-    });
-    const researchVersionId = claimsToContentCid(researchClaims).cid;
-    researchClaims['Composition.meta.versionId'] = researchVersionId;
-    researchClaims['org.hl7.fhir.r4.Composition.meta.versionId'] = researchVersionId;
-    const researchRecordId = this.buildStableProjectionRecordId(
-      'digital-twin-composition',
-      String(researchClaims['Composition.identifier'] || researchClaims['org.hl7.fhir.r4.Composition.identifier'] || researchVersionId),
-    );
-    const digitalTwinSectionId = getSubjectScopedSectionId(twinSubjectId, SUBJECT_SECTION_DIGITAL_TWIN, 'composition');
-    await this.vaultRepository.put(tenantVaultId, [{ id: researchRecordId, ...researchClaims } as any], digitalTwinSectionId);
+    for (const target of studyTargets) {
+      const { claims: researchClaims } = await resolveAndProjectClaimsForDigitalTwin({
+        claims,
+        resourceType: ResourceTypesFhirR4.Composition,
+        twinSubjectId: target.twinSubjectId,
+        sector: String(job.sector || ''),
+        jurisdiction: String(job.jurisdiction || ''),
+      });
+      if (target.researchUseReference) {
+        researchClaims['__digitalTwinStudy.reference'] = target.researchUseReference;
+      }
+      const researchVersionId = claimsToContentCid(researchClaims).cid;
+      researchClaims['Composition.meta.versionId'] = researchVersionId;
+      researchClaims['org.hl7.fhir.r4.Composition.meta.versionId'] = researchVersionId;
+      const researchRecordId = this.buildStableProjectionRecordId(
+        'digital-twin-composition',
+        String(researchClaims['Composition.identifier'] || researchClaims['org.hl7.fhir.r4.Composition.identifier'] || researchVersionId),
+      );
+      const digitalTwinSectionId = getSubjectScopedSectionId(
+        target.twinSubjectId,
+        SUBJECT_SECTION_DIGITAL_TWIN,
+        'composition',
+      );
+      await this.vaultRepository.put(tenantVaultId, [{ id: researchRecordId, ...researchClaims } as any], digitalTwinSectionId);
+      await markDigitalTwinStudyTargetShared({
+        vaultRepository: this.vaultRepository,
+        tenantVaultId,
+        sourceSubject: subject,
+        researchUseReference: target.researchUseReference,
+      });
+    }
   }
 
   private async persistCommunicationChannelRecord(
@@ -1316,6 +1333,21 @@ export class CommunicationManager implements IJobProcessor {
       },
     });
 
+    if (
+      rawResourceType === ResourceTypesFhirR4.Parameters
+      && requestMethod === 'POST'
+      && this.normalizeOptionalString(request?.url) === 'PublicHealthStatistic/$report'
+    ) {
+      return this.processIndividualPublicHealthStatisticReport({
+        job: input.job,
+        resource,
+        communicationSubject: input.communicationSubject,
+        tenantVaultId: input.tenantVaultId,
+        responseType,
+        errorResponse,
+      });
+    }
+
     if (rawResourceType === 'Task') {
       if (!this.taskManager) return errorResponse('503', 'Task manager is not configured.');
       if (requestMethod !== 'POST' || this.normalizeOptionalString(request?.url) !== 'Task') {
@@ -1543,26 +1575,22 @@ export class CommunicationManager implements IJobProcessor {
     sourceRecordId: string;
   }): Promise<void> {
     if (!isDigitalTwinResearchResourceType(input.resourceType)) return;
-    const enabled = await isDigitalTwinSecondaryUseEnabled({
+    const targets = await listEnabledDigitalTwinStudyTargets({
       vaultRepository: this.vaultRepository,
       tenantVaultId: input.tenantVaultId,
       sourceSubject: input.sourceSubject,
     });
-    if (!enabled) return;
-    const twinSubjectId = await getOrCreateDigitalTwinSubjectId({
-      vaultRepository: this.vaultRepository,
-      tenantVaultId: input.tenantVaultId,
-      sourceSubject: input.sourceSubject,
-    });
-    const sectionId = getSubjectScopedSectionId(
-      twinSubjectId,
-      SUBJECT_SECTION_DIGITAL_TWIN,
-      PROJECTED_RESOURCE_CONFIG[input.resourceType].collectionId,
-    );
-    const projections = await this.vaultRepository.listContainersInSection<any>(input.tenantVaultId, sectionId);
-    for (const projection of projections) {
-      if (this.normalizeOptionalString(projection?.audit?.sourceRecordId) !== input.sourceRecordId) continue;
-      await this.vaultRepository.delete(input.tenantVaultId, String(projection.id), sectionId);
+    for (const target of targets) {
+      const sectionId = getSubjectScopedSectionId(
+        target.twinSubjectId,
+        SUBJECT_SECTION_DIGITAL_TWIN,
+        PROJECTED_RESOURCE_CONFIG[input.resourceType].collectionId,
+      );
+      const projections = await this.vaultRepository.listContainersInSection<any>(input.tenantVaultId, sectionId);
+      for (const projection of projections) {
+        if (this.normalizeOptionalString(projection?.audit?.sourceRecordId) !== input.sourceRecordId) continue;
+        await this.vaultRepository.delete(input.tenantVaultId, String(projection.id), sectionId);
+      }
     }
   }
 
@@ -1803,93 +1831,336 @@ export class CommunicationManager implements IJobProcessor {
     if (!alreadyIndexed) {
       await this.vaultRepository.put(input.tenantVaultId, [record as any], sectionId);
     }
+    const publicStatisticsWarning = !alreadyIndexed
+      && input.documentClaims?.registerResearchMetadata === true
+      ? await this.registerCertifiedPublicHealthStatistic({
+          job: input.job,
+          tenantVaultId: input.tenantVaultId,
+          resourceType: input.resourceType,
+          subjectIdentifier: input.communicationSubject,
+          section: input.explicitSection,
+          claims: persistedClaims,
+        })
+      : undefined;
     if (
       !isMinimalIndexProjection
       && isResearchFinalized
       && isDigitalTwinResearchResourceType(input.resourceType)
       && isProfessionallyAttestedResearchRecord(persistedClaims)
-      && await isDigitalTwinSecondaryUseEnabled({
-        vaultRepository: this.vaultRepository,
-        tenantVaultId: input.tenantVaultId,
-        sourceSubject: subjectRef,
-      })
     ) {
-      const twinSubjectId = await getOrCreateDigitalTwinSubjectId({
+      const studyTargets = await listEnabledDigitalTwinStudyTargets({
         vaultRepository: this.vaultRepository,
         tenantVaultId: input.tenantVaultId,
         sourceSubject: subjectRef,
       });
-      const researchProjection = await resolveAndProjectClaimsForDigitalTwin({
-        claims: persistedClaims,
-        resourceType: input.resourceType,
-        twinSubjectId,
-        sector: String(input.job.sector || ''),
-        jurisdiction: String(input.job.jurisdiction || ''),
-      });
-      const researchClaims = researchProjection.claims;
-      const researchVersionId = claimsToContentCid(this.clinicalContentVersionClaims(researchClaims)).cid;
-      researchClaims[`${input.resourceType}.meta.versionId`] = researchVersionId;
-      researchClaims[`org.hl7.fhir.r4.${input.resourceType}.meta.versionId`] = researchVersionId;
-      const digitalTwinSectionId = getSubjectScopedSectionId(
-        twinSubjectId,
-        SUBJECT_SECTION_DIGITAL_TWIN,
-        config.collectionId,
-      );
-      const researchRecordId = createHash('sha256')
-        .update(`${input.resourceType}|${recordId}`, 'utf8')
-        .digest('hex');
-      const priorResearchRecords = await this.vaultRepository.listContainersInSection<any>(
-        input.tenantVaultId,
-        digitalTwinSectionId,
-      );
-      const legacyResearchRecordIds = priorResearchRecords
-        .filter((priorResearchRecord) =>
-          this.normalizeOptionalString(priorResearchRecord?.audit?.sourceRecordId) === recordId
-          && this.normalizeOptionalString(priorResearchRecord?.id) !== researchRecordId)
-        .map((priorResearchRecord) => String(priorResearchRecord.id));
-      const researchAudit = input.creatorDid ? {
-        creatorDid: authenticatedActorDid || input.creatorDid,
-        sourceRecordId: recordId,
-        ...(audit?.submitterDid ? { submitterDid: audit.submitterDid } : {}),
-        ...(audit?.signingKeyId ? { signingKeyId: audit.signingKeyId } : {}),
-      } : undefined;
-      await this.vaultRepository.put(input.tenantVaultId, [{
-        id: researchRecordId,
-        ...researchClaims,
-        ...(researchAudit ? { audit: researchAudit } : {}),
-        indexed: {
-          attributes: buildConfidentialDocumentIndexedAttributes({
-            claims: researchClaims,
-            sector: String(input.job.sector || ''),
-            audit: researchAudit,
-          }),
-        },
-      } as any], digitalTwinSectionId);
-      for (const legacyResearchRecordId of legacyResearchRecordIds) {
-        await this.vaultRepository.delete(
+      let terminologyWarning: OperationOutcome | undefined;
+      for (const target of studyTargets) {
+        const researchProjection = await resolveAndProjectClaimsForDigitalTwin({
+          claims: persistedClaims,
+          resourceType: input.resourceType,
+          twinSubjectId: target.twinSubjectId,
+          sector: String(input.job.sector || ''),
+          jurisdiction: String(input.job.jurisdiction || ''),
+        });
+        const researchClaims = researchProjection.claims;
+        if (target.researchUseReference) {
+          researchClaims['__digitalTwinStudy.reference'] = target.researchUseReference;
+        }
+        const researchVersionId = claimsToContentCid(this.clinicalContentVersionClaims(researchClaims)).cid;
+        researchClaims[`${input.resourceType}.meta.versionId`] = researchVersionId;
+        researchClaims[`org.hl7.fhir.r4.${input.resourceType}.meta.versionId`] = researchVersionId;
+        const digitalTwinSectionId = getSubjectScopedSectionId(
+          target.twinSubjectId,
+          SUBJECT_SECTION_DIGITAL_TWIN,
+          config.collectionId,
+        );
+        const researchRecordId = createHash('sha256')
+          .update(`${input.resourceType}|${recordId}`, 'utf8')
+          .digest('hex');
+        const priorResearchRecords = await this.vaultRepository.listContainersInSection<any>(
           input.tenantVaultId,
-          legacyResearchRecordId,
           digitalTwinSectionId,
         );
+        const legacyResearchRecordIds = priorResearchRecords
+          .filter((priorResearchRecord) =>
+            this.normalizeOptionalString(priorResearchRecord?.audit?.sourceRecordId) === recordId
+            && this.normalizeOptionalString(priorResearchRecord?.id) !== researchRecordId)
+          .map((priorResearchRecord) => String(priorResearchRecord.id));
+        const researchAudit = input.creatorDid ? {
+          creatorDid: authenticatedActorDid || input.creatorDid,
+          sourceRecordId: recordId,
+          ...(audit?.submitterDid ? { submitterDid: audit.submitterDid } : {}),
+          ...(audit?.signingKeyId ? { signingKeyId: audit.signingKeyId } : {}),
+        } : undefined;
+        await this.vaultRepository.put(input.tenantVaultId, [{
+          id: researchRecordId,
+          ...researchClaims,
+          ...(researchAudit ? { audit: researchAudit } : {}),
+          indexed: {
+            attributes: buildConfidentialDocumentIndexedAttributes({
+              claims: researchClaims,
+              sector: String(input.job.sector || ''),
+              audit: researchAudit,
+            }),
+          },
+        } as any], digitalTwinSectionId);
+        await markDigitalTwinStudyTargetShared({
+          vaultRepository: this.vaultRepository,
+          tenantVaultId: input.tenantVaultId,
+          sourceSubject: subjectRef,
+          researchUseReference: target.researchUseReference,
+        });
+        for (const legacyResearchRecordId of legacyResearchRecordIds) {
+          await this.vaultRepository.delete(input.tenantVaultId, legacyResearchRecordId, digitalTwinSectionId);
+        }
+        terminologyWarning = terminologyWarning || researchProjection.warning;
+        if (researchProjection.researchReady) {
+          terminologyWarning = await this.registerResearchMapping(input.job, buildResearchAssetVersionMapping({
+            resourceType: input.resourceType,
+            sourceResourceId: recordId,
+            sourceVersionId: versionId,
+            twinSubjectId: target.twinSubjectId,
+            claims: researchClaims,
+          })) || terminologyWarning;
+        }
       }
-      let terminologyWarning = researchProjection.warning;
-      if (researchProjection.researchReady) {
-        terminologyWarning = await this.registerResearchMapping(input.job, buildResearchAssetVersionMapping({
-          resourceType: input.resourceType,
-          sourceResourceId: recordId,
-          sourceVersionId: versionId,
-          twinSubjectId,
-          claims: researchClaims,
-        })) || terminologyWarning;
-      }
-      return {
+      if (studyTargets.length > 0) return {
         recordId,
         versionId,
         created: !alreadyIndexed,
-        ...(terminologyWarning ? { terminologyWarning } : {}),
+        ...((publicStatisticsWarning || terminologyWarning)
+          ? { terminologyWarning: publicStatisticsWarning || terminologyWarning }
+          : {}),
       };
     }
-    return { recordId, versionId, created: !alreadyIndexed };
+    return {
+      recordId,
+      versionId,
+      created: !alreadyIndexed,
+      ...(publicStatisticsWarning ? { terminologyWarning: publicStatisticsWarning } : {}),
+    };
+  }
+
+  /**
+   * A client may request the documented statistical contribution, but only a
+   * reopened professional binding and its exact professional attestation make
+   * the request eligible. Ledger failure never rolls back the private record.
+   */
+  private async registerCertifiedPublicHealthStatistic(input: {
+    job: JobRequest;
+    tenantVaultId: string;
+    resourceType: SupportedProjectedResourceType;
+    subjectIdentifier?: string;
+    section: string;
+    claims: Record<string, unknown>;
+  }): Promise<OperationOutcome | undefined> {
+    if (!this.blockchainAdapter?.registerPublicHealthStatistics) return createOperationOutcome(
+      IssueLevel.Warning,
+      IssueType.Processing,
+      'Public health statistics registration is not configured.',
+    );
+    try {
+      const binding = await this.resolveAuthenticatedClinicalCreatorBinding(
+        input.job,
+        input.tenantVaultId,
+      );
+      const mapping = buildPublicHealthStatisticLedgerMappingFromClinicalClaims({
+        path: PublicHealthStatisticsContributionPaths.ClinicalCertification,
+        resourceType: input.resourceType,
+        sector: String(input.job.sector || ''),
+        jurisdiction: String(input.job.jurisdiction || ''),
+        section: input.section,
+        claims: input.claims,
+        authority: {
+          qualifiedCreator: binding?.kind === FhirIpsCreatorKinds.Professional,
+          attachmentPresent: true,
+          reviewAttested: isProfessionallyAttestedResearchRecord(input.claims),
+        },
+      });
+      const submitted = await this.blockchainAdapter.registerPublicHealthStatistics(
+        [mapping],
+        resolveResearchDataChannel(input.job.sector, input.job.jurisdiction),
+        ClinicalEvidenceChaincode,
+      );
+      if (submitted.accepted !== 1) {
+        throw new Error(`Public statistics registration accepted ${submitted.accepted}/1 resources.`);
+      }
+      return undefined;
+    } catch (error) {
+      console.error('[PublicHealthStatisticsLedger] Registration failed after private write.', error);
+      return createOperationOutcome(
+        IssueLevel.Warning,
+        IssueType.Processing,
+        'Public health statistics registration is temporarily unavailable.',
+      );
+    }
+  }
+
+  /**
+   * Reports an existing private clinical fact without accepting a replacement
+   * fact from the client. Eligibility is rebuilt from the authenticated member
+   * binding, the subject-scoped vault row, and its professional provenance.
+   */
+  private async processIndividualPublicHealthStatisticReport(input: {
+    job: JobRequest;
+    resource: Record<string, any>;
+    communicationSubject?: string;
+    tenantVaultId: string;
+    responseType: string;
+    errorResponse: (status: string, text: string) => ErrorEntry;
+  }): Promise<BundleEntryResponse | ErrorEntry> {
+    try {
+      if (!this.blockchainAdapter?.registerPublicHealthStatistics) {
+        return input.errorResponse('503', 'Public health statistics registration is not configured.');
+      }
+      const parameters = Array.isArray(input.resource?.parameter) ? input.resource.parameter : [];
+      const parameterClaims = input.resource?.meta?.claims
+        && typeof input.resource.meta.claims === 'object'
+        && !Array.isArray(input.resource.meta.claims)
+        ? input.resource.meta.claims as Record<string, unknown>
+        : {};
+      const parameterValue = (name: string): string | undefined => {
+        const parameter = parameters.find((candidate: any) => candidate?.name === name);
+        return this.normalizeOptionalString(
+          parameter?.valueCode
+          ?? parameter?.valueString
+          ?? parameter?.valueUri
+          ?? parameterClaims[`Parameters.${name}`],
+        );
+      };
+      const reportKind = parameterValue('reportKind');
+      const subject = this.normalizeOptionalString(input.communicationSubject);
+      if (!subject || !['clinical-record', 'self-report'].includes(String(reportKind || ''))) {
+        return input.errorResponse(
+          '400',
+          'Public health report requires reportKind and Communication.subject.',
+        );
+      }
+      const authenticatedBinding = await this.resolveAuthenticatedClinicalCreatorBinding(
+        input.job,
+        input.tenantVaultId,
+      );
+      if (authenticatedBinding?.kind !== FhirIpsCreatorKinds.IndividualMember) {
+        return input.errorResponse('403', 'Public health report requires an authenticated individual member.');
+      }
+      if (reportKind === 'self-report') {
+        const mapping = buildPublicHealthStatisticLedgerMappingFromSelfReport({
+          sector: String(input.job.sector || ''),
+          jurisdiction: String(input.job.jurisdiction || ''),
+          evidence: {
+            section: String(parameterValue('section') || ''),
+            codingSystem: String(parameterValue('codingSystem') || ''),
+            code: String(parameterValue('code') || ''),
+            occurredOn: String(parameterValue('occurredOn') || ''),
+            ...(parameterValue('speciesTaxonomyId') ? { speciesTaxonomyId: parameterValue('speciesTaxonomyId') } : {}),
+            ...(parameterValue('ageBand') ? { ageBand: parameterValue('ageBand') } : {}),
+            ...(parameterValue('sex') ? { sex: parameterValue('sex') } : {}),
+          },
+          authority: { individualAuthorized: true },
+        });
+        const submitted = await this.blockchainAdapter.registerPublicHealthStatistics(
+          [mapping],
+          resolveResearchDataChannel(input.job.sector, input.job.jurisdiction),
+          ClinicalEvidenceChaincode,
+        );
+        if (submitted.accepted !== 1) {
+          throw new Error(`Public statistics registration accepted ${submitted.accepted}/1 resources.`);
+        }
+        return {
+          id: mapping.statisticId,
+          type: input.responseType,
+          response: { status: String(HttpStatusCodes.Created) },
+          resource: {
+            resourceType: ResourceTypesFhirR4.Parameters,
+            parameter: [
+              { name: 'statisticId', valueString: mapping.statisticId },
+              ...(submitted.txId ? [{ name: 'transactionId', valueString: submitted.txId }] : []),
+            ],
+          },
+        } as BundleEntryResponse;
+      }
+      const requestedResourceType = this.getSupportedProjectedResourceType(parameterValue('resourceType'));
+      const resourceId = parameterValue('resourceId');
+      if (!requestedResourceType || !resourceId || requestedResourceType === 'Consent') {
+        return input.errorResponse(
+          '400',
+          'Clinical-record statistics require one supported resourceType and resourceId.',
+        );
+      }
+      const sectionId = getSubjectScopedSectionId(
+        subject,
+        SUBJECT_SECTION_INDIVIDUAL,
+        PROJECTED_RESOURCE_CONFIG[requestedResourceType].collectionId,
+      );
+      const source = await this.vaultRepository.get<{ id: string; [key: string]: any }>(
+        input.tenantVaultId,
+        resourceId,
+        sectionId,
+      );
+      if (!source) return input.errorResponse('404', 'Clinical record was not found for this subject.');
+      if (this.resolveProjectedResourceSubject(
+        source,
+        PROJECTED_RESOURCE_CONFIG[requestedResourceType].subjectClaimKeys,
+      ) !== subject) {
+        return input.errorResponse('403', 'Clinical record does not belong to Communication.subject.');
+      }
+      const bindingRecords = await this.vaultRepository.listContainersInSection(
+        input.tenantVaultId,
+        getClinicalCreatorBindingsSectionId(),
+      );
+      const bindings = (bindingRecords as unknown[]).filter(isClinicalCreatorBinding);
+      const attesters = String(getClaimValue(source, CompositionClaim.Attester) || '')
+        .split(',').map((value) => value.trim()).filter(Boolean);
+      const professionalOrigin = bindings.some((binding) =>
+        binding.kind === FhirIpsCreatorKinds.Professional
+        && attesters.some((attester) =>
+          attester === binding.authorIdentifier
+          || attester === binding.ownerIdentifier
+          || binding.actorDids?.includes(attester)));
+      const section = this.getFirstClaimValue(source, [CompositionClaim.Section]);
+      const selfCreated = Boolean(
+        source?.audit?.creatorDid
+        && authenticatedBinding.actorDids?.includes(String(source.audit.creatorDid)),
+      );
+      const mapping = buildPublicHealthStatisticLedgerMappingFromClinicalClaims({
+        path: PublicHealthStatisticsContributionPaths.IndividualClinicalRecord,
+        resourceType: requestedResourceType,
+        sector: String(input.job.sector || ''),
+        jurisdiction: String(input.job.jurisdiction || ''),
+        section: String(section || ''),
+        claims: source,
+        authority: {
+          individualAuthorized: true,
+          clinicOriginVerified: professionalOrigin,
+          selfCreated,
+        },
+      });
+      const submitted = await this.blockchainAdapter.registerPublicHealthStatistics(
+        [mapping],
+        resolveResearchDataChannel(input.job.sector, input.job.jurisdiction),
+        ClinicalEvidenceChaincode,
+      );
+      if (submitted.accepted !== 1) {
+        throw new Error(`Public statistics registration accepted ${submitted.accepted}/1 resources.`);
+      }
+      return {
+        id: mapping.statisticId,
+        type: input.responseType,
+        response: { status: String(HttpStatusCodes.Created) },
+        resource: {
+          resourceType: ResourceTypesFhirR4.Parameters,
+          parameter: [
+            { name: 'statisticId', valueString: mapping.statisticId },
+            ...(submitted.txId ? [{ name: 'transactionId', valueString: submitted.txId }] : []),
+          ],
+        },
+      } as BundleEntryResponse;
+    } catch (error) {
+      return input.errorResponse(
+        error instanceof TypeError ? '403' : '503',
+        error instanceof Error ? error.message : 'Public health report failed.',
+      );
+    }
   }
 
   /** Ledger outages do not roll back the private SOS clinical write. */
