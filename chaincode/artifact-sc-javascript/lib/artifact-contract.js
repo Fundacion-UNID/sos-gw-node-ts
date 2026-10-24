@@ -149,7 +149,156 @@ function parseResearchVersionBatch(payload) {
   });
 }
 
+function parsePublicHealthStatisticsBatch(payload) {
+  if (!Array.isArray(payload.data) || payload.data.length === 0) {
+    throw new Error("payload.data must be a non-empty array");
+  }
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const collectionPurposes = new Set(["public-clinical-statistics", "public-health-user-reports"]);
+  const subjectKinds = new Set(["human", "animal"]);
+  const allowedResourceFields = new Set([
+    "resourceType", "collectionPurpose", "subjectKind",
+    "section", "coding", "jurisdiction", "occurredOn", "demographics",
+  ]);
+  const allowedDemographicFields = new Set(["speciesTaxonomyId", "ageBand", "sex"]);
+  const required = (value, path) => {
+    const normalized = String(value || "").trim();
+    if (!normalized) throw new Error(`${path} is required`);
+    return normalized;
+  };
+  const canonicalCoding = (value, path) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new Error(`${path} must contain system and code`);
+    }
+    const system = String(value.system || "").trim();
+    const code = String(value.code || "").trim();
+    let validSystem = false;
+    try {
+      validSystem = Boolean(new URL(system).protocol);
+    } catch {
+      validSystem = false;
+    }
+    if (!validSystem || !code || Object.keys(value).some((key) => !["system", "code"].includes(key))) {
+      throw new Error(`${path} must contain system and code`);
+    }
+    return { system, code };
+  };
+
+  return payload.data.map((entry, index) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      throw new Error(`data[${index}] must be an object`);
+    }
+    if (entry.type !== "PublicHealthStatistic") {
+      throw new Error(`data[${index}].type must be PublicHealthStatistic`);
+    }
+    const id = String(entry.id || "").trim();
+    if (!uuidPattern.test(id)) throw new Error(`data[${index}].id must be an opaque UUID`);
+    const resource = entry.resource;
+    if (!resource || typeof resource !== "object" || Array.isArray(resource)) {
+      throw new Error(`data[${index}].resource must be an object`);
+    }
+    for (const field of Object.keys(resource)) {
+      if (!allowedResourceFields.has(field)) throw new Error(`data[${index}].resource has unsupported field ${field}`);
+    }
+    if (resource.resourceType !== "PublicHealthStatistic") {
+      throw new Error(`data[${index}].resource.resourceType must be PublicHealthStatistic`);
+    }
+    const collectionPurpose = required(resource.collectionPurpose, `data[${index}].resource.collectionPurpose`);
+    if (!collectionPurposes.has(collectionPurpose)) {
+      throw new Error(`data[${index}].resource.collectionPurpose is invalid`);
+    }
+    const subjectKind = required(resource.subjectKind, `data[${index}].resource.subjectKind`);
+    if (!subjectKinds.has(subjectKind)) throw new Error(`data[${index}].resource.subjectKind is invalid`);
+    const section = required(resource.section, `data[${index}].resource.section`);
+    const separator = section.indexOf("|");
+    if (separator < 1 || !URL.canParse(section.slice(0, separator)) || !section.slice(separator + 1).trim()) {
+      throw new Error(`data[${index}].resource.section must be system|code`);
+    }
+    const jurisdiction = required(resource.jurisdiction, `data[${index}].resource.jurisdiction`).toUpperCase();
+    if (!/^[A-Z]{2}(?:-[A-Z0-9]{1,3})+$/.test(jurisdiction)) {
+      throw new Error(`data[${index}].resource.jurisdiction is invalid`);
+    }
+    const occurredOn = required(resource.occurredOn, `data[${index}].resource.occurredOn`);
+    const occurredDate = new Date(`${occurredOn}T00:00:00.000Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(occurredOn)
+      || Number.isNaN(occurredDate.valueOf())
+      || occurredDate.toISOString().slice(0, 10) !== occurredOn) {
+      throw new Error(`data[${index}].resource.occurredOn must be a date`);
+    }
+    let demographics;
+    if (resource.demographics !== undefined) {
+      if (!resource.demographics || typeof resource.demographics !== "object" || Array.isArray(resource.demographics)) {
+        throw new Error(`data[${index}].resource.demographics must be an object`);
+      }
+      for (const field of Object.keys(resource.demographics)) {
+        if (!allowedDemographicFields.has(field)) {
+          throw new Error(`data[${index}].resource.demographics has unsupported field ${field}`);
+        }
+      }
+      const speciesTaxonomyId = String(resource.demographics.speciesTaxonomyId || "").trim();
+      const ageBand = String(resource.demographics.ageBand || "").trim();
+      const sex = String(resource.demographics.sex || "").trim();
+      if (speciesTaxonomyId && !/^\d{1,12}$/.test(speciesTaxonomyId)) {
+        throw new Error(`data[${index}].resource.demographics.speciesTaxonomyId is invalid`);
+      }
+      if (subjectKind === "human" && speciesTaxonomyId) {
+        throw new Error(`data[${index}].resource.demographics.speciesTaxonomyId is forbidden for human statistics`);
+      }
+      if (ageBand && !/^\d{1,3}-\d{1,3}$/.test(ageBand)) {
+        throw new Error(`data[${index}].resource.demographics.ageBand is invalid`);
+      }
+      demographics = {
+        ...(speciesTaxonomyId ? { speciesTaxonomyId } : {}),
+        ...(ageBand ? { ageBand } : {}),
+        ...(sex ? { sex } : {}),
+      };
+      if (!Object.keys(demographics).length) demographics = undefined;
+    }
+    return {
+      id,
+      resource: {
+        resourceType: "PublicHealthStatistic",
+        collectionPurpose,
+        subjectKind,
+        section,
+        coding: canonicalCoding(resource.coding, `data[${index}].resource.coding`),
+        jurisdiction,
+        occurredOn,
+        ...(demographics ? { demographics } : {}),
+      },
+    };
+  });
+}
+
 class ArtifactContract extends Contract {
+  /** Stores immutable identifier-free metadata for public population statistics. */
+  async UpsertPublicHealthStatistics(ctx, payloadJson) {
+    const payload = parseJson(payloadJson, "payload");
+    const statistics = parsePublicHealthStatisticsBatch(payload);
+    const data = [];
+    for (const statistic of statistics) {
+      if (await existsAsset(ctx.stub, statistic.id)) {
+        const previous = await readAsset(ctx.stub, statistic.id, ARTIFACT_ASSET_LABEL);
+        if (JSON.stringify(previous?.meta?.attributes) !== JSON.stringify(statistic.resource)) {
+          throw new Error(`Public health statistic ${statistic.id} already exists; public statistics are immutable`);
+        }
+        data.push({ type: "PublicHealthStatistic", id: statistic.id, resource: previous });
+        continue;
+      }
+      const asset = buildStoredArtifactAsset(ctx, statistic.id, {
+        artifactType: "public-health-statistic",
+        meta: { attributes: statistic.resource },
+      });
+      await writeJsonAsset(ctx.stub, statistic.id, asset);
+      data.push({ type: "PublicHealthStatistic", id: statistic.id, resource: asset });
+    }
+    return { data };
+  }
+
+  async upsertPublicHealthStatistics(ctx, payloadJson) {
+    return this.UpsertPublicHealthStatistics(ctx, payloadJson);
+  }
+
   /** Writes one code-only research parent before its opaque research version. */
   async UpsertResearchVersions(ctx, payloadJson) {
     const payload = parseJson(payloadJson, "payload");

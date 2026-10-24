@@ -15,11 +15,11 @@ import { SUBJECT_SECTION_DIGITAL_TWIN, SUBJECT_SECTION_INDIVIDUAL } from '../con
 import type { ITenantsManager } from './ITenantsManager';
 import { getEnvSectionId } from '../utils/section-env';
 import {
-  getOrCreateDigitalTwinSubjectId,
   isProfessionallyAttestedResearchRecord,
+  markDigitalTwinStudyTargetShared,
   resolveAndProjectClaimsForDigitalTwin,
 } from '../utils/digital-twin-research-projection';
-import { isDigitalTwinSecondaryUseEnabled } from '../utils/digital-twin-secondary-use';
+import { listEnabledDigitalTwinStudyTargets } from '../utils/digital-twin-secondary-use';
 import { buildSearchResponseEntries } from '../utils/didcomm-response';
 import { GatewayResponseEntryTypes } from '../shared/gateway-response-types';
 import { buildConfidentialDocumentIndexedAttributes } from 'gdc-common-utils-ts/utils/confidential-document-provenance';
@@ -196,62 +196,72 @@ export class MedicationStatementManager implements IJobProcessor {
           if (
             scope === SUBJECT_SECTION_INDIVIDUAL
             && isProfessionallyAttestedResearchRecord(claims)
-            && await isDigitalTwinSecondaryUseEnabled({
-              vaultRepository: this.vaultRepository,
-              tenantVaultId,
-              sourceSubject: subject,
-            })
           ) {
-            const twinSubjectId = await getOrCreateDigitalTwinSubjectId({
+            const studyTargets = await listEnabledDigitalTwinStudyTargets({
               vaultRepository: this.vaultRepository, tenantVaultId, sourceSubject: subject,
             });
-            const researchProjection = await resolveAndProjectClaimsForDigitalTwin({
-              claims, resourceType: 'MedicationStatement', twinSubjectId,
-              sector: job.sector,
-              jurisdiction,
-            });
-            const researchClaims = researchProjection.claims;
-            const researchId = String(
-              researchClaims['MedicationStatement.identifier']
-              || researchClaims['org.hl7.fhir.api.MedicationStatement.identifier']
-              || determineResourceId(undefined, process.env.NODE_ENV),
-            );
-            const digitalTwinSectionId = getSubjectScopedSectionId(twinSubjectId, SUBJECT_SECTION_DIGITAL_TWIN, 'medications');
-            await this.vaultRepository.put(tenantVaultId, [{
-              id: researchId,
-              ...researchClaims,
-              indexed: {
-                attributes: buildConfidentialDocumentIndexedAttributes({
-                  claims: researchClaims,
-                  sector: job.sector,
-                }),
-              },
-            } as any], digitalTwinSectionId);
-            terminologyWarning = researchProjection.warning;
-            if (researchProjection.researchReady && this.blockchainAdapter?.registerResearchVersionMappings) {
-              try {
-                const mapping = buildResearchAssetVersionMapping({
-                  resourceType: ResourceTypesFhirR4.MedicationStatement,
-                  sourceResourceId: id,
-                  sourceVersionId: versionId,
-                  twinSubjectId,
-                  claims: researchClaims,
-                });
-                const registered = await this.blockchainAdapter.registerResearchVersionMappings(
-                  [mapping],
-                  resolveResearchDataChannel(job.sector, jurisdiction),
-                  ClinicalEvidenceChaincode,
-                );
-                if (registered.accepted !== 1) {
-                  throw new Error(`Research registration accepted ${registered.accepted}/1 resources.`);
+            for (const target of studyTargets) {
+              const researchProjection = await resolveAndProjectClaimsForDigitalTwin({
+                claims, resourceType: 'MedicationStatement', twinSubjectId: target.twinSubjectId,
+                sector: job.sector,
+                jurisdiction,
+              });
+              const researchClaims = researchProjection.claims;
+              if (target.researchUseReference) {
+                researchClaims['__digitalTwinStudy.reference'] = target.researchUseReference;
+              }
+              const researchId = String(
+                researchClaims['MedicationStatement.identifier']
+                || researchClaims['org.hl7.fhir.api.MedicationStatement.identifier']
+                || determineResourceId(undefined, process.env.NODE_ENV),
+              );
+              const digitalTwinSectionId = getSubjectScopedSectionId(
+                target.twinSubjectId,
+                SUBJECT_SECTION_DIGITAL_TWIN,
+                'medications',
+              );
+              await this.vaultRepository.put(tenantVaultId, [{
+                id: researchId,
+                ...researchClaims,
+                indexed: {
+                  attributes: buildConfidentialDocumentIndexedAttributes({
+                    claims: researchClaims,
+                    sector: job.sector,
+                  }),
+                },
+              } as any], digitalTwinSectionId);
+              await markDigitalTwinStudyTargetShared({
+                vaultRepository: this.vaultRepository,
+                tenantVaultId,
+                sourceSubject: subject,
+                researchUseReference: target.researchUseReference,
+              });
+              terminologyWarning = terminologyWarning || researchProjection.warning;
+              if (researchProjection.researchReady && this.blockchainAdapter?.registerResearchVersionMappings) {
+                try {
+                  const mapping = buildResearchAssetVersionMapping({
+                    resourceType: ResourceTypesFhirR4.MedicationStatement,
+                    sourceResourceId: id,
+                    sourceVersionId: versionId,
+                    twinSubjectId: target.twinSubjectId,
+                    claims: researchClaims,
+                  });
+                  const registered = await this.blockchainAdapter.registerResearchVersionMappings(
+                    [mapping],
+                    resolveResearchDataChannel(job.sector, jurisdiction),
+                    ClinicalEvidenceChaincode,
+                  );
+                  if (registered.accepted !== 1) {
+                    throw new Error(`Research registration accepted ${registered.accepted}/1 resources.`);
+                  }
+                } catch (error) {
+                  console.error('[ResearchLedger] Medication registration failed after private projection.', error);
+                  terminologyWarning = createOperationOutcome(
+                    IssueLevel.Warning,
+                    IssueType.Processing,
+                    'Research registration is temporarily unavailable.',
+                  );
                 }
-              } catch (error) {
-                console.error('[ResearchLedger] Medication registration failed after private projection.', error);
-                terminologyWarning = createOperationOutcome(
-                  IssueLevel.Warning,
-                  IssueType.Processing,
-                  'Research registration is temporarily unavailable.',
-                );
               }
             }
           }

@@ -29,6 +29,7 @@ describe('TwinCompositionManager public ResearchSubject search', () => {
         }];
         if (sectionId === compositionSection) return [{
           id: 'composition-index',
+          '__digitalTwinStudy.reference': 'https://research.example/studies/alpha',
           meta: {
             claims: {
               '@context': 'org.hl7.fhir.api',
@@ -65,6 +66,7 @@ describe('TwinCompositionManager public ResearchSubject search', () => {
     expect((response.body as any).data[0].resource).toMatchObject({
       resourceType: 'ResearchSubject',
       identifier: [{ value: twinSubject }],
+      study: { reference: 'https://research.example/studies/alpha' },
       contained: [{
         resourceType: 'Composition',
         id: 'composition-index',
@@ -74,6 +76,7 @@ describe('TwinCompositionManager public ResearchSubject search', () => {
     });
     expect((response.body as any).data[0].resource.composition).toBeUndefined();
     expect((response.body as any).data[0].resource.meta?.claims).toBeUndefined();
+    expect(JSON.stringify((response.body as any).data[0].resource)).not.toContain('__digitalTwinStudy');
 
     const claimsFirstResponse = await manager.process({
       ...request,
@@ -87,6 +90,7 @@ describe('TwinCompositionManager public ResearchSubject search', () => {
         claims: {
           '@context': 'org.hl7.fhir.api',
           'ResearchSubject.identifier': twinSubject,
+          'ResearchSubject.study': 'https://research.example/studies/alpha',
           'Composition.subject': twinSubject,
           'Composition.section': section,
         },
@@ -94,5 +98,6 @@ describe('TwinCompositionManager public ResearchSubject search', () => {
     });
     expect(claimsFirstResource.composition).toBeUndefined();
     expect(claimsFirstResource['Composition.subject']).toBeUndefined();
+    expect(claimsFirstResource.meta.claims['__digitalTwinStudy.reference']).toBeUndefined();
   });
 });

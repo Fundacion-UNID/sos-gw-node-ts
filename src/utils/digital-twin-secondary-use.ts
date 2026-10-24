@@ -8,10 +8,12 @@ import type { IVaultRepository } from '../database/repositories/vault/vault.repo
 import { SUBJECT_SECTION_DIGITAL_TWIN, SUBJECT_SECTION_INDIVIDUAL } from '../constants/domain';
 import { getClaimValue } from './claims';
 import {
+  buildDigitalTwinSubjectAliasId,
   getOrCreateDigitalTwinSubjectId,
   isFinalizedDigitalTwinResearchRecord,
   isDigitalTwinResearchResourceType,
   isProfessionallyAttestedResearchRecord,
+  markDigitalTwinStudyTargetShared,
   resolveAndProjectClaimsForDigitalTwin,
 } from './digital-twin-research-projection';
 import { getEnvSectionId } from './section-env';
@@ -34,7 +36,16 @@ export type DigitalTwinSecondaryUseStatus = RecordBase & {
   sourceSubjectHash: string;
   status: 'enabled' | 'disabled';
   changedAt: string;
+  /** One study/service owns one unlinkable twin. Absent only for legacy consent. */
+  researchUseReference?: string;
 };
+
+export type EnabledDigitalTwinStudyTarget = Readonly<{
+  researchUseReference?: string;
+  twinSubjectId: string;
+  changedAt: string;
+  lastSharedAt?: string;
+}>;
 
 function subjectHash(subject: string): string {
   return createHash('sha256').update(String(subject || '').trim(), 'utf8').digest('hex');
@@ -98,13 +109,17 @@ async function rebuildProjection(
   sourceSubject: string,
   sector: string,
   jurisdiction: string,
+  researchUseReference?: string,
 ): Promise<Readonly<{
   researchMappings: ResearchAssetVersionMapping[];
   warnings: OperationOutcome[];
 }>> {
   const researchMappings: ResearchAssetVersionMapping[] = [];
   const warnings: OperationOutcome[] = [];
-  const twinSubjectId = await getOrCreateDigitalTwinSubjectId({ vaultRepository, tenantVaultId, sourceSubject });
+  let projectedAny = false;
+  const twinSubjectId = await getOrCreateDigitalTwinSubjectId({
+    vaultRepository, tenantVaultId, sourceSubject, researchUseReference,
+  });
   await clearSubjectProjection(vaultRepository, tenantVaultId, sourceSubject);
   await clearSubjectProjection(vaultRepository, tenantVaultId, twinSubjectId);
 
@@ -126,11 +141,13 @@ async function rebuildProjection(
       });
       if (projection.warning) warnings.push(projection.warning);
       const projectedClaims = projection.claims;
+      if (researchUseReference) projectedClaims['__digitalTwinStudy.reference'] = researchUseReference;
       const targetSectionId = getSubjectScopedSectionId(twinSubjectId, SUBJECT_SECTION_DIGITAL_TWIN, collectionId);
       await vaultRepository.put(tenantVaultId, [{
         id: projectedRecordId(resourceType, projectedClaims, String(sourceRecord.id)),
         ...projectedClaims,
       }], targetSectionId);
+      projectedAny = true;
       const sourceVersionId = String(
         (sourceRecord as Record<string, any>)?.indexed?.versionId
         || getClaimValue(sourceClaims, `${resourceType}.meta.versionId`)
@@ -172,10 +189,20 @@ async function rebuildProjection(
       sector,
       jurisdiction,
     });
+    if (researchUseReference) projectedClaims['__digitalTwinStudy.reference'] = researchUseReference;
     await vaultRepository.put(tenantVaultId, [{
       id: projectedRecordId('Composition', projectedClaims),
       ...projectedClaims,
     }], targetCompositionSection);
+    projectedAny = true;
+  }
+  if (projectedAny) {
+    await markDigitalTwinStudyTargetShared({
+      vaultRepository,
+      tenantVaultId,
+      sourceSubject,
+      researchUseReference,
+    });
   }
   return { researchMappings, warnings };
 }
@@ -185,14 +212,58 @@ export async function isDigitalTwinSecondaryUseEnabled(input: {
   vaultRepository: IVaultRepository;
   tenantVaultId: string;
   sourceSubject: string;
+  researchUseReference?: string;
 }): Promise<boolean> {
-  const id = subjectHash(input.sourceSubject);
-  const status = await input.vaultRepository.get<DigitalTwinSecondaryUseStatus>(
+  const researchUseReference = String(input.researchUseReference || '').trim();
+  if (researchUseReference) {
+    const status = await input.vaultRepository.get<DigitalTwinSecondaryUseStatus>(
+      input.tenantVaultId,
+      buildDigitalTwinSubjectAliasId(input.sourceSubject, researchUseReference),
+      statusSectionId(),
+    );
+    return status?.status === 'enabled';
+  }
+  return (await input.vaultRepository.listContainersInSection<DigitalTwinSecondaryUseStatus>(
     input.tenantVaultId,
-    id,
+    statusSectionId(),
+  )).some((status) => status.sourceSubjectHash === subjectHash(input.sourceSubject) && status.status === 'enabled');
+}
+
+/** Returns every enabled study-specific target for one operational subject. */
+export async function listEnabledDigitalTwinStudyTargets(input: {
+  vaultRepository: IVaultRepository;
+  tenantVaultId: string;
+  sourceSubject: string;
+}): Promise<EnabledDigitalTwinStudyTarget[]> {
+  const sourceHash = subjectHash(input.sourceSubject);
+  const statuses = await input.vaultRepository.listContainersInSection<DigitalTwinSecondaryUseStatus>(
+    input.tenantVaultId,
     statusSectionId(),
   );
-  return status?.status === 'enabled';
+  const enabled = statuses.filter((status) => status.sourceSubjectHash === sourceHash && status.status === 'enabled');
+  const targets: EnabledDigitalTwinStudyTarget[] = [];
+  for (const status of enabled) {
+    const researchUseReference = String(status.researchUseReference || '').trim();
+    const twinSubjectId = await getOrCreateDigitalTwinSubjectId({
+      vaultRepository: input.vaultRepository,
+      tenantVaultId: input.tenantVaultId,
+      sourceSubject: input.sourceSubject,
+      ...(researchUseReference ? { researchUseReference } : {}),
+    });
+    const alias = await input.vaultRepository.get<any>(
+      input.tenantVaultId,
+      buildDigitalTwinSubjectAliasId(input.sourceSubject, researchUseReference),
+      getEnvSectionId('digitaltwin_subject_aliases'),
+    );
+    const lastSharedAt = String(alias?.lastSharedAt || '').trim();
+    targets.push({
+      ...(researchUseReference ? { researchUseReference } : {}),
+      twinSubjectId,
+      changedAt: status.changedAt,
+      ...(lastSharedAt ? { lastSharedAt } : {}),
+    });
+  }
+  return targets.sort((left, right) => String(left.researchUseReference || '').localeCompare(String(right.researchUseReference || '')));
 }
 
 /**
@@ -217,39 +288,19 @@ export async function applyDigitalTwinSecondaryUseDecision(input: {
   const decision = String(getClaimValue(input.claims, ClaimConsent.decision) || '').trim().toLowerCase();
   if (!sourceSubject || (decision !== 'permit' && decision !== 'deny')) return false;
 
-  const consentSectionId = getSubjectScopedSectionId(sourceSubject, SUBJECT_SECTION_INDIVIDUAL, 'consents');
-  const storedRules = await input.vaultRepository.listContainersInSection<RecordBase>(
-    input.tenantVaultId,
-    consentSectionId,
-  );
   const currentReference = String(
     getClaimValue(input.claims, ClaimConsent.sourceReference)
     || getClaimValue(input.claims, ClaimConsent.identifier)
     || '',
   ).trim();
-  const decisionsByReference = new Map<string, string>();
-  for (const storedRule of storedRules) {
-    const storedClaims = storedRule as Record<string, any>;
-    if (!isResearchSecondaryUseRule(storedClaims)) continue;
-    if (String(getClaimValue(storedClaims, ClaimConsent.subject) || '').trim() !== sourceSubject) continue;
-    const reference = String(
-      getClaimValue(storedClaims, ClaimConsent.sourceReference)
-      || getClaimValue(storedClaims, ClaimConsent.identifier)
-      || storedRule.id,
-    ).trim();
-    decisionsByReference.set(
-      reference,
-      String(getClaimValue(storedClaims, ClaimConsent.decision) || '').trim().toLowerCase(),
-    );
-  }
-  decisionsByReference.set(currentReference, decision);
-  const enabled = Array.from(decisionsByReference.values()).some((value) => value === 'permit');
+  const enabled = decision === 'permit';
   const status: DigitalTwinSecondaryUseStatus = {
-    id: subjectHash(sourceSubject),
+    id: buildDigitalTwinSubjectAliasId(sourceSubject, currentReference),
     type: 'digital-twin-secondary-use-status',
     sourceSubjectHash: subjectHash(sourceSubject),
     status: enabled ? 'enabled' : 'disabled',
     changedAt: new Date().toISOString(),
+    ...(currentReference ? { researchUseReference: currentReference } : {}),
   };
   await input.vaultRepository.put(input.tenantVaultId, [status], statusSectionId());
 
@@ -260,6 +311,7 @@ export async function applyDigitalTwinSecondaryUseDecision(input: {
       sourceSubject,
       String(input.sector || input.tenantVaultId.split('_')[0] || ''),
       String(input.jurisdiction || ''),
+      currentReference || undefined,
     );
     input.warnings?.push(...projection.warnings);
     if (projection.researchMappings.length > 0 && input.blockchainAdapter?.registerResearchVersionMappings) {
@@ -297,22 +349,46 @@ export async function purgeDigitalTwinSubjectLink(input: {
   vaultRepository: IVaultRepository;
   tenantVaultId: string;
   sourceSubject: string;
-}): Promise<{ purged: boolean; detachedTwinSubjectId?: string }> {
+}): Promise<{ purged: boolean; detachedTwinSubjectId?: string; detachedTwinSubjectIds?: string[] }> {
   const sourceSubject = String(input.sourceSubject || '').trim();
   if (!sourceSubject) throw new Error('sourceSubject is required');
-  const id = subjectHash(sourceSubject);
   const aliasSectionId = getEnvSectionId('digitaltwin_subject_aliases');
-  const alias = await input.vaultRepository.get<any>(input.tenantVaultId, id, aliasSectionId);
-
-  await input.vaultRepository.put(input.tenantVaultId, [{
-    id,
+  const sourceHash = subjectHash(sourceSubject);
+  const registeredAliases = typeof input.vaultRepository.getContainersInSection === 'function'
+    ? await input.vaultRepository.getContainersInSection<any>(input.tenantVaultId, aliasSectionId)
+    : await input.vaultRepository.listContainersInSection<any>(input.tenantVaultId, aliasSectionId);
+  const aliases = registeredAliases
+    .filter((alias) => alias?.sourceSubjectHash === sourceHash || alias?.id === sourceHash);
+  if (aliases.length === 0) {
+    const legacyAlias = await input.vaultRepository.get<any>(input.tenantVaultId, sourceHash, aliasSectionId);
+    if (legacyAlias?.twinSubjectId) aliases.push({ ...legacyAlias, id: legacyAlias.id || sourceHash });
+  }
+  const statuses = (await input.vaultRepository.listContainersInSection<DigitalTwinSecondaryUseStatus>(
+    input.tenantVaultId,
+    statusSectionId(),
+  )).filter((status) => status.sourceSubjectHash === sourceHash || status.id === sourceHash);
+  if (statuses.length === 0) statuses.push({
+    id: sourceHash,
     type: 'digital-twin-secondary-use-status',
-    sourceSubjectHash: id,
+    sourceSubjectHash: sourceHash,
     status: 'disabled',
     changedAt: new Date().toISOString(),
-  }], statusSectionId());
-
-  if (!alias?.twinSubjectId) return { purged: false };
-  await input.vaultRepository.delete(input.tenantVaultId, id, aliasSectionId);
-  return { purged: true, detachedTwinSubjectId: alias.twinSubjectId };
+  });
+  for (const status of statuses) {
+    await input.vaultRepository.put(input.tenantVaultId, [{
+      ...status,
+      status: 'disabled',
+      changedAt: new Date().toISOString(),
+    }], statusSectionId());
+  }
+  const detachedTwinSubjectIds = aliases
+    .map((alias) => String(alias?.twinSubjectId || '').trim())
+    .filter(Boolean);
+  for (const alias of aliases) await input.vaultRepository.delete(input.tenantVaultId, String(alias.id), aliasSectionId);
+  if (detachedTwinSubjectIds.length === 0) return { purged: false };
+  return {
+    purged: true,
+    detachedTwinSubjectId: detachedTwinSubjectIds[0],
+    ...(detachedTwinSubjectIds.length > 1 ? { detachedTwinSubjectIds } : {}),
+  };
 }

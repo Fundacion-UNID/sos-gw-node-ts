@@ -1,5 +1,21 @@
 ## Unreleased
 
+- Scope every private Digital Twin alias to the operational subject plus its
+  exact research-use reference. One person participating in two
+  `ResearchStudy` records now receives two unlinkable UUID subjects; consent,
+  projection, deletion and later synchronization operate over every enabled
+  study independently. The private alias index records `lastSharedAt`, and
+  public `ResearchSubject` responses expose the corresponding standard
+  `study` reference without exposing the private source binding.
+- Add product-neutral, identifier-free public-health statistics through the
+  existing Communication ingestion and `artifact-sc`.
+  Qualified professionals may opt in while certifying final coded evidence;
+  authenticated individuals may later report either a private record whose
+  professional origin is reverified by the gateway or a code-only self-report.
+  Every event receives an unrelated random UUID and carries no source hash,
+  signature, record id or stable subject pseudonym. All paths use
+  manager-derived research channels and remain separate from Digital Twin
+  Consent and organization-private research datasets.
 - Return conversion failures in both `OperationOutcome.issue.diagnostics` and
   the compatibility `details.text` projection without changing persistence.
 

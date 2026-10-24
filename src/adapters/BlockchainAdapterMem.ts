@@ -2,6 +2,7 @@
 
 import { IBlockchainAdapter } from './IBlockchainAdapter';
 import type { ResearchAssetVersionMapping } from '../utils/research-asset-versioning';
+import type { PublicHealthStatisticLedgerMapping } from '../utils/public-health-statistics';
 
 /**
  * An in-memory mock implementation of the IBlockchainAdapter for testing and local development.
@@ -57,6 +58,14 @@ export class BlockchainAdapterMem implements IBlockchainAdapter {
     _chaincode: string,
   ): Promise<{ accepted: number; txId?: string }> {
     return { accepted: mappings.length, txId: `mem-research-${Date.now()}` };
+  }
+
+  public async registerPublicHealthStatistics(
+    mappings: PublicHealthStatisticLedgerMapping[],
+    _channel: string,
+    _chaincode: string,
+  ): Promise<{ accepted: number; txId?: string }> {
+    return { accepted: mappings.length, txId: `mem-public-statistics-${Date.now()}` };
   }
 
   public async registerConsentAccessBundle(params: {

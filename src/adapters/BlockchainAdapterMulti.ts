@@ -3,6 +3,7 @@
 
 import type { IBlockchainAdapter } from './IBlockchainAdapter';
 import type { ResearchAssetVersionMapping } from '../utils/research-asset-versioning';
+import type { PublicHealthStatisticLedgerMapping } from '../utils/public-health-statistics';
 
 /**
  * Combines a read/discovery adapter with an optional Fabric-backed write adapter.
@@ -36,6 +37,20 @@ export class BlockchainAdapterMulti implements IBlockchainAdapter {
     }
     if (this.discoveryAdapter.registerResearchVersionMappings) {
       return this.discoveryAdapter.registerResearchVersionMappings(mappings, channel, chaincode);
+    }
+    return { accepted: 0 };
+  }
+
+  public async registerPublicHealthStatistics(
+    mappings: PublicHealthStatisticLedgerMapping[],
+    channel: string,
+    chaincode: string,
+  ): Promise<{ accepted: number; txId?: string }> {
+    if (this.writeAdapter?.registerPublicHealthStatistics) {
+      return this.writeAdapter.registerPublicHealthStatistics(mappings, channel, chaincode);
+    }
+    if (this.discoveryAdapter.registerPublicHealthStatistics) {
+      return this.discoveryAdapter.registerPublicHealthStatistics(mappings, channel, chaincode);
     }
     return { accepted: 0 };
   }

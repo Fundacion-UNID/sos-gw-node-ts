@@ -19,7 +19,7 @@ import { testCommunicationAppointmentFhirR4, testCommMsgExtAppointmentRequest, t
 import { DataEntry } from 'gdc-common-utils-ts/models/comm';
 import { JobRequest, JobStatus } from 'gdc-common-utils-ts/models/confidential-job';
 import { IDecodedDidcommPayload } from 'gdc-common-utils-ts/models/confidential-message';
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { createServer, type Server } from 'node:http';
 import type { IVaultRepository } from '../../../database/repositories/vault/vault.repository';
 import type { IKmsService } from '../../../gdc-backend-utils-node/models/IKmsService';
@@ -73,9 +73,11 @@ import {
 import { FhirIpsCreatorKinds } from 'gdc-common-utils-ts/utils/fhir-ips-creator-identity';
 import { extractBundleSearchResources } from 'gdc-common-utils-ts/utils/organization-employee-lifecycle';
 import { getClinicalCreatorBindingsSectionId } from '../../../utils/ips-bundle';
-import { applyDigitalTwinSecondaryUseDecision } from '../../../utils/digital-twin-secondary-use';
+import {
+  applyDigitalTwinSecondaryUseDecision,
+  listEnabledDigitalTwinStudyTargets,
+} from '../../../utils/digital-twin-secondary-use';
 import { buildDemoResearchPermitByRoleConsent } from '../../data/demo-smart-access-local-network.data';
-import { getOrCreateDigitalTwinSubjectId } from '../../../utils/digital-twin-research-projection';
 import { VitalSignsCodes, VitalSignsUnits } from 'gdc-common-utils-ts/constants/vital-signs';
 import {
   EXAMPLE_VITAL_SIGNS_EFFECTIVE_DATE_TIME,
@@ -100,11 +102,12 @@ describe('CommunicationManager Unit Tests', () => {
       tenantVaultId: 'health-care_acme',
       claims: { ...buildDemoResearchPermitByRoleConsent({ subjectDid }) },
     });
-    const twinSubjectId = await getOrCreateDigitalTwinSubjectId({
+    const [target] = await listEnabledDigitalTwinStudyTargets({
       vaultRepository: mockVaultRepository,
       tenantVaultId: 'health-care_acme',
       sourceSubject: subjectDid,
     });
+    const twinSubjectId = target.twinSubjectId;
     mockVaultRepository.put.mockClear();
     return twinSubjectId;
   }
@@ -127,7 +130,10 @@ describe('CommunicationManager Unit Tests', () => {
       delete: jest.fn(async (vaultId: string, id: string, sectionId?: string) =>
         storedRecords.delete(`${vaultId}|${sectionId}|${id}`)),
       query: jest.fn(async () => []),
-      listContainersInSection: jest.fn(async () => []),
+      listContainersInSection: jest.fn(async (vaultId: string, sectionId: string) =>
+        Array.from(storedRecords.entries())
+          .filter(([key]) => key.startsWith(`${vaultId}|${sectionId}|`))
+          .map(([, record]) => record)),
       getAllSections: jest.fn(async () => []),
     } as unknown as jest.Mocked<IVaultRepository>;
     mockKmsService = {
@@ -461,11 +467,12 @@ describe('CommunicationManager Unit Tests', () => {
         tenantVaultId,
         claims: { ...buildDemoResearchPermitByRoleConsent({ subjectDid }) },
       });
-      const twinSubjectId = await getOrCreateDigitalTwinSubjectId({
+      const [target] = await listEnabledDigitalTwinStudyTargets({
         vaultRepository: mockVaultRepository,
         tenantVaultId,
         sourceSubject: subjectDid,
       });
+      const twinSubjectId = target.twinSubjectId;
       const twinSectionId = getSubjectScopedSectionId(twinSubjectId, 'digitaltwin', 'observations');
       expect(Array.from(storedRecords.keys()).filter((key) => key.startsWith(`${tenantVaultId}|${twinSectionId}|`)))
         .toHaveLength(0);
@@ -582,14 +589,21 @@ describe('CommunicationManager Unit Tests', () => {
         if (String(sectionId).includes('digitaltwin_subject_aliases')) return { twinSubjectId: twinSubjectDid } as any;
         return undefined;
       });
-      mockVaultRepository.listContainersInSection.mockImplementation(async (_vaultId: string, sectionId: string) =>
-        String(sectionId).includes('immunizations')
+      mockVaultRepository.listContainersInSection.mockImplementation(async (_vaultId: string, sectionId: string) => {
+        if (String(sectionId).includes('digitaltwin_secondary_use_status')) return [{
+          id: createHash('sha256').update(subjectDid).digest('hex'),
+          sourceSubjectHash: createHash('sha256').update(subjectDid).digest('hex'),
+          status: 'enabled',
+          changedAt: '2026-10-23T00:00:00.000Z',
+        }] as any;
+        return String(sectionId).includes('immunizations')
           ? [{
               id: 'research-immunization-mistake',
               audit: { creatorDid, sourceRecordId: 'immunization-mistake' },
               'Immunization.subject': twinSubjectDid,
             }] as any
-          : []);
+          : [];
+      });
 
       // Step 2. One creator-authorized delete removes both the operational error and only its correlated projection.
       const response = await communicationManager.process(buildClinicalBatchJob([{
@@ -721,6 +735,254 @@ describe('CommunicationManager Unit Tests', () => {
         'observation-delegated-author',
         getSubjectScopedSectionId(subjectDid, 'individual', 'observations'),
       )).toBeDefined();
+    });
+
+    it('registers anonymous public statistics when a qualified professional certifies opted-in coded evidence', async () => {
+      const assignment = `urn:uuid:${EXAMPLE_KYC_CONTROLLER_UUID}`;
+      await mockVaultRepository.put('animal-care_acme', [{
+        id: assignment,
+        kind: FhirIpsCreatorKinds.Professional,
+        actorIdentifier: `urn:uuid:${EXAMPLE_KYC_CONTROLLER_USER_UUID}`,
+        authorIdentifier: assignment,
+        ownerIdentifier: EXAMPLE_PROVIDER_ORGANIZATION_AUTHORIZATION_URN_CDS,
+        role: HealthcareActorRoles.VeterinaryTechnicianOrAssistant,
+        actorDids: [creatorDid],
+      } as any], getClinicalCreatorBindingsSectionId());
+      mockVaultRepository.listContainersInSection.mockImplementation(async (vaultId: string, sectionId: string) =>
+        [...storedRecords.entries()]
+          .filter(([key]) => key.startsWith(`${vaultId}|${sectionId}|`))
+          .map(([, value]) => value));
+      mockTenantsCacheManager.getTenantDid.mockResolvedValue(testServerDid as any);
+      const registerPublicHealthStatistics = jest.fn(async () => ({
+        accepted: 1,
+        txId: 'public-statistics-tx',
+      }));
+      communicationManager = new CommunicationManager({
+        tenantsCacheManager: mockTenantsCacheManager,
+        vaultRepository: mockVaultRepository,
+        kmsService: mockKmsService,
+        compositionManager: mockCompositionManager as any,
+        individualManager: mockIndividualManager as any,
+        taskManager: mockTaskManager as any,
+        blockchainAdapter: { registerPublicHealthStatistics } as any,
+      });
+
+      const job = buildClinicalBatchJob([{
+        type: 'Observation-create-request-v1.0',
+        request: { method: 'POST', url: 'Observation' },
+        resource: {
+          resourceType: 'Observation',
+          id: 'observation-public-statistics',
+          subject: { reference: subjectDid },
+          status: 'final',
+          code: { coding: [{ system: 'http://snomed.info/sct', code: '386661006' }] },
+          effectiveDateTime: '2026-10-23T11:42:00Z',
+        },
+      }], EXAMPLE_PROVIDER_ORGANIZATION_AUTHORIZATION_URN_CDS, assignment);
+      const communicationClaims = (job.content!.body as any).data[0].resource.meta.claims;
+      const attached = JSON.parse(Buffer.from(
+        communicationClaims[CommunicationClaim.ContentAttachmentData],
+        'base64',
+      ).toString('utf8'));
+      attached.meta.claims.registerResearchMetadata = true;
+      communicationClaims[CommunicationClaim.ContentAttachmentData] = Buffer.from(
+        JSON.stringify(attached),
+        'utf8',
+      ).toString('base64');
+
+      const response = await communicationManager.process(job);
+
+      expect((response.body as any).data[0].response.status).toBe('201');
+      expect(registerPublicHealthStatistics).toHaveBeenCalledWith(
+        [expect.objectContaining({
+          statisticId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+          contribution: expect.objectContaining({
+            path: 'clinical-certification',
+            collectionPurpose: 'public-clinical-statistics',
+            projection: expect.objectContaining({
+              subjectKind: 'animal',
+              codingSystem: 'http://snomed.info/sct',
+              code: '386661006',
+              occurredOn: '2026-10-23',
+            }),
+          }),
+        })],
+        'animal-care-na-research',
+        'artifact-sc',
+      );
+      expect(JSON.stringify(registerPublicHealthStatistics.mock.calls))
+        .not.toMatch(/patient-1|clinic-a|provider|qualifiedCreator|attachmentPresent|reviewAttested/);
+    });
+
+    it('lets an individual later report only authoritative professional-origin evidence', async () => {
+      const professionalAssignment = `urn:uuid:${EXAMPLE_KYC_CONTROLLER_UUID}`;
+      const individualAssignment = `urn:uuid:${EXAMPLE_CLIENT_INSTANCE_UUID}`;
+      const individualDid = 'did:web:subject.example:members:member-1';
+      const professionalBinding = {
+        id: professionalAssignment,
+        kind: FhirIpsCreatorKinds.Professional,
+        actorIdentifier: `urn:uuid:${EXAMPLE_KYC_CONTROLLER_USER_UUID}`,
+        authorIdentifier: professionalAssignment,
+        ownerIdentifier: EXAMPLE_PROVIDER_ORGANIZATION_AUTHORIZATION_URN_CDS,
+        role: HealthcareActorRoles.VeterinaryTechnicianOrAssistant,
+        actorDids: [creatorDid],
+      };
+      const individualBinding = {
+        id: individualAssignment,
+        kind: FhirIpsCreatorKinds.IndividualMember,
+        actorIdentifier: individualAssignment,
+        authorIdentifier: individualAssignment,
+        ownerIdentifier: individualAssignment,
+        role: EXAMPLE_RELATED_PERSON_ROLE,
+        actorDids: [individualDid],
+      };
+      const sourceRecord: Record<string, any> = {
+        id: 'clinic-observation-for-later-report',
+        'Observation.subject': subjectDid,
+        'Observation.status': 'final',
+        'Observation.code': 'http://snomed.info/sct|386661006',
+        'Observation.effective-datetime': '2026-10-23T11:42:00Z',
+        'Observation.meta.versionId': 'zG9EU4AWxfuVgFj41YxQMzyo4Y9neV8zDtN9ZvevfwRaPxYvgFMAvjXsjty9TzEyZAA9r',
+        [CompositionClaim.Section]: HealthcareBasicSections.AllergiesAndIntolerances.attributeValue,
+        [CompositionClaim.Author]: EXAMPLE_PROVIDER_ORGANIZATION_AUTHORIZATION_URN_CDS,
+        [CompositionClaim.Attester]: professionalAssignment,
+        [CompositionClaim.AttesterMode]: CompositionAttesterModes.Professional,
+        audit: { creatorDid },
+      };
+      storedRecords.clear();
+      for (const record of [professionalBinding, individualBinding]) {
+        storedRecords.set(`animal-care_acme|${getClinicalCreatorBindingsSectionId()}|${record.id}`, record);
+      }
+      storedRecords.set(
+        `animal-care_acme|${getSubjectScopedSectionId(subjectDid, 'individual', 'observations')}|clinic-observation-for-later-report`,
+        sourceRecord,
+      );
+      mockVaultRepository.listContainersInSection.mockImplementation(async (vaultId: string, sectionId: string) =>
+        [...storedRecords.entries()]
+          .filter(([key]) => key.startsWith(`${vaultId}|${sectionId}|`))
+          .map(([, value]) => value));
+      mockTenantsCacheManager.getTenantDid.mockResolvedValue(testServerDid as any);
+      const registerPublicHealthStatistics = jest.fn(async () => ({
+        accepted: 1,
+        txId: 'individual-public-statistics-tx',
+      }));
+      communicationManager = new CommunicationManager({
+        tenantsCacheManager: mockTenantsCacheManager,
+        vaultRepository: mockVaultRepository,
+        kmsService: mockKmsService,
+        blockchainAdapter: { registerPublicHealthStatistics } as any,
+      });
+
+      const response = await communicationManager.process(buildClinicalBatchJob([{
+        type: 'PublicHealthStatistic-report-request-v1.0',
+        request: { method: 'POST', url: 'PublicHealthStatistic/$report' },
+        resource: {
+          resourceType: 'Parameters',
+          id: 'individual-statistics-report-parameters',
+          meta: { claims: {
+            'Parameters.reportKind': 'clinical-record',
+            'Parameters.resourceType': 'Observation',
+            'Parameters.resourceId': 'clinic-observation-for-later-report',
+          } },
+        },
+      }], individualAssignment, individualAssignment, individualDid));
+
+      expect((response.body as any).data[0].response.status).toBe('201');
+      expect(registerPublicHealthStatistics).toHaveBeenCalledWith(
+        [expect.objectContaining({
+          contribution: expect.objectContaining({
+            path: 'individual-clinical-record',
+            collectionPurpose: 'public-health-user-reports',
+          }),
+        })],
+        'animal-care-na-research',
+        'artifact-sc',
+      );
+      expect(JSON.stringify(registerPublicHealthStatistics.mock.calls))
+        .not.toMatch(/patient-1|member-1|clinic-a|provider|individualAuthorized|clinicOriginVerified/);
+
+      sourceRecord[CompositionClaim.Attester] = individualAssignment;
+      sourceRecord[CompositionClaim.AttesterMode] = CompositionAttesterModes.Personal;
+      sourceRecord.audit.creatorDid = individualDid;
+      const rejected = await communicationManager.process(buildClinicalBatchJob([{
+        type: 'PublicHealthStatistic-report-request-v1.0',
+        request: { method: 'POST', url: 'PublicHealthStatistic/$report' },
+        resource: {
+          resourceType: 'Parameters',
+          id: 'individual-statistics-report-self-created',
+          meta: { claims: {
+            'Parameters.reportKind': 'clinical-record',
+            'Parameters.resourceType': 'Observation',
+            'Parameters.resourceId': 'clinic-observation-for-later-report',
+          } },
+        },
+      }], individualAssignment, individualAssignment, individualDid));
+      expect((rejected.body as any).data[0].response.status).toBe('403');
+      expect(registerPublicHealthStatistics).toHaveBeenCalledTimes(1);
+    });
+
+    it('lets an authenticated individual publish one coded self-report without a source record or hash', async () => {
+      const individualAssignment = `urn:uuid:${EXAMPLE_CLIENT_INSTANCE_UUID}`;
+      const individualDid = 'did:web:subject.example:members:member-1';
+      const individualBinding = {
+        id: individualAssignment,
+        kind: FhirIpsCreatorKinds.IndividualMember,
+        actorIdentifier: individualAssignment,
+        authorIdentifier: individualAssignment,
+        ownerIdentifier: individualAssignment,
+        role: EXAMPLE_RELATED_PERSON_ROLE,
+        actorDids: [individualDid],
+      };
+      storedRecords.clear();
+      storedRecords.set(
+        `animal-care_acme|${getClinicalCreatorBindingsSectionId()}|${individualAssignment}`,
+        individualBinding,
+      );
+      mockVaultRepository.listContainersInSection.mockImplementation(async (vaultId: string, sectionId: string) =>
+        [...storedRecords.entries()]
+          .filter(([key]) => key.startsWith(`${vaultId}|${sectionId}|`))
+          .map(([, value]) => value));
+      mockTenantsCacheManager.getTenantDid.mockResolvedValue(testServerDid as any);
+      const registerPublicHealthStatistics = jest.fn(async () => ({ accepted: 1, txId: 'self-report-tx' }));
+      communicationManager = new CommunicationManager({
+        tenantsCacheManager: mockTenantsCacheManager,
+        vaultRepository: mockVaultRepository,
+        kmsService: mockKmsService,
+        blockchainAdapter: { registerPublicHealthStatistics } as any,
+      });
+
+      const response = await communicationManager.process(buildClinicalBatchJob([{
+        type: 'PublicHealthStatistic-report-request-v1.0',
+        request: { method: 'POST', url: 'PublicHealthStatistic/$report' },
+        resource: {
+          resourceType: 'Parameters',
+          id: 'individual-statistics-self-report',
+          meta: { claims: {
+            'Parameters.reportKind': 'self-report',
+            'Parameters.section': 'http://loinc.org|11450-4',
+            'Parameters.codingSystem': 'http://snomed.info/sct',
+            'Parameters.code': '386661006',
+            'Parameters.occurredOn': '2026-10-23',
+          } },
+        },
+      }], individualAssignment, individualAssignment, individualDid));
+
+      expect((response.body as any).data[0].response.status).toBe('201');
+      expect(registerPublicHealthStatistics).toHaveBeenCalledWith(
+        [expect.objectContaining({
+          statisticId: expect.stringMatching(/^[0-9a-f-]{36}$/),
+          contribution: expect.objectContaining({
+            path: 'individual-self-report',
+            collectionPurpose: 'public-health-user-reports',
+          }),
+        })],
+        'animal-care-na-research',
+        'artifact-sc',
+      );
+      expect(JSON.stringify(registerPublicHealthStatistics.mock.calls))
+        .not.toMatch(/documentHash|sourceVersionId|resourceId|member-1|DigitalTwin/i);
+      expect(JSON.stringify(mockVaultRepository.get.mock.calls))
+        .not.toContain('individual-statistics-self-report');
     });
 
     it('returns 403 and persists no clinical resource for an unbound section attester', async () => {
