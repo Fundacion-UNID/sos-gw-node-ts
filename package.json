@@ -1,6 +1,6 @@
 {
   "name": "sos-gw-node-ts",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "private": true,
   "description": "SOSCHAIN Gateway service extending GW CORE for secure emergency data interoperability",
   "repository": {
