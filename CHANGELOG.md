@@ -1,5 +1,13 @@
 ## Unreleased
 
+- Restore the deployment-authorized legacy `Organization/_activate`
+  bootstrap-controller proof without weakening modern DCR authorization.
+  Tenant-scoped verification may resolve only the stored
+  `host-bootstrap-controller` key, requires the configured compatibility
+  switch, and accepts an issuer only when it is the stored operational DID or
+  one exact stored `did:web` alias. Caller-supplied JWK material never grants
+  tenant authority.
+
 - Make production cleanup and OpenAPI generation portable across Windows,
   macOS and Linux by replacing POSIX shell commands and inline environment
   assignments with Node launchers.

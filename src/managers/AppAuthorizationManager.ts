@@ -29,6 +29,8 @@ import {
   prepareDeviceLicenseDocumentForWrite,
 } from '../utils/device-license-storage';
 
+const HOST_BOOTSTRAP_CONTROLLER_LIFECYCLE_ROLE = 'host-bootstrap-controller';
+
 export type ControllerProofRegistrationContext = Readonly<{
   vaultId: string;
   collectionName?: string;
@@ -644,15 +646,51 @@ export class AppAuthorizationManager {
       });
       for (const document of documents || []) {
         const employee = await this.kmsService.unprotectConfidentialData<EntityConfig>(document, context.vaultId);
-        if (String(employee?.didDocument?.id || '').trim() !== issuerDid) continue;
-        const method = employee.didDocument?.verificationMethod?.find((candidate) => {
-          const methodKid = String((candidate.publicKeyJwk as JWK | undefined)?.kid || '').trim();
-          return methodKid === kid || String(candidate.id || '').endsWith(`#${kid}`);
-        });
-        if (method?.publicKeyJwk) return method.publicKeyJwk as JWK;
+        const publicJwk = this.findEmployeeControllerProofJwk(employee, issuerDid, kid, false);
+        if (publicJwk) return publicJwk;
+      }
+
+      if (!this.legacyRepresentativeControllerEnabled()) continue;
+      const historicalDocuments = await this.vaultRepository.getContainersInSection<ConfidentialStorageDoc>(
+        scope,
+        getEnvSectionId('employees'),
+      );
+      for (const document of historicalDocuments || []) {
+        const publicProjection = (document.public || {}) as Record<string, unknown>;
+        if (String(publicProjection.role || '').trim() !== HOST_BOOTSTRAP_CONTROLLER_LIFECYCLE_ROLE) continue;
+        const employee = await this.kmsService.unprotectConfidentialData<EntityConfig>(document, context.vaultId);
+        const publicJwk = this.findEmployeeControllerProofJwk(employee, issuerDid, kid, true);
+        if (publicJwk) return publicJwk;
       }
     }
     return undefined;
+  }
+
+  private findEmployeeControllerProofJwk(
+    employee: EntityConfig,
+    issuerDid: string,
+    kid: string,
+    allowStoredDidAlias: boolean,
+  ): JWK | undefined {
+    const didDocument = employee?.didDocument;
+    const primaryDid = String(didDocument?.id || '').trim();
+    const storedDidAliases = allowStoredDidAlias && Array.isArray(didDocument?.alsoKnownAs)
+      ? didDocument.alsoKnownAs
+        .map((alias) => String(alias || '').trim())
+        .filter((alias) => alias.startsWith('did:web:'))
+      : [];
+    if (primaryDid !== issuerDid && !storedDidAliases.includes(issuerDid)) return undefined;
+    const method = didDocument?.verificationMethod?.find((candidate) => {
+      const methodKid = String((candidate.publicKeyJwk as JWK | undefined)?.kid || '').trim();
+      return methodKid === kid || String(candidate.id || '').endsWith(`#${kid}`);
+    });
+    return method?.publicKeyJwk as JWK | undefined;
+  }
+
+  private legacyRepresentativeControllerEnabled(): boolean {
+    return ['true', '1', 'yes', 'on'].includes(
+      String(process.env.HOST_LEGACY_REPRESENTATIVE_CONTROLLER || '').trim().toLowerCase(),
+    );
   }
 
   private hasPrivateJwkMaterial(jwk: JWK): boolean {

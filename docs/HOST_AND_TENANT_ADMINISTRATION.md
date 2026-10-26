@@ -143,6 +143,16 @@ Manually changing a path never changes that state. If a requested screen is
 not allowed, the page fails with 403 or 404; the associated BFF operation also
 fails closed independently.
 
+The historical UNID legal-representative path is narrower than a general DCR
+exception. Its `Organization/_activate` JWK is the completed first-controller
+bootstrap binding; that same controller does not repeat `Token/_exchange` or
+`Device/_dcr`. When the deployment compatibility switch is enabled, a
+tenant-scoped proof may resolve only an employee stored as
+`host-bootstrap-controller`, only through its primary DID or one exact stored
+`did:web` alias, and only with the stored public JWK selected by `kid`. Later
+service controllers, employees and replacement devices still complete their
+own exchange and DCR. Request-supplied key material never grants authority.
+
 ## Compatible extraction sequence
 
 1. Keep existing VetChain and UHC routes and behavior as executable references.
