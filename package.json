@@ -20,9 +20,9 @@
   "scripts": {
     "prepublishOnly": "node -e \"console.error('ERROR: sos-gw-node-ts is a deployable service and must never be published to npm'); process.exit(1)\"",
     "start": "node --import ./scripts/register-tsnode.mjs build/main.js",
-    "clean": "rm -rf build",
+    "clean": "node scripts/clean-build.mjs",
     "build": "npm run clean && npm run build:swagger && tsc && node scripts/patch-esm-imports.mjs",
-    "build:swagger": "TS_NODE_TRANSPILE_ONLY=1 TS_NODE_SKIP_IGNORE=1 TS_NODE_COMPILER_OPTIONS='{\"module\":\"NodeNext\",\"moduleResolution\":\"NodeNext\",\"allowImportingTsExtensions\":true}' node --loader ts-node/esm --experimental-specifier-resolution=node scripts/generate-swagger-spec.mts && node scripts/generate-openapi-profiles.mjs && node --loader ts-node/esm --experimental-specifier-resolution=node scripts/generate-core-flow-examples.mjs",
+    "build:swagger": "node scripts/generate-swagger-all.mjs",
     "build:openapi-profiles": "node scripts/generate-openapi-profiles.mjs",
     "kms:audit": "TS_NODE_TRANSPILE_ONLY=1 TS_NODE_SKIP_IGNORE=1 TS_NODE_COMPILER_OPTIONS='{\"module\":\"NodeNext\",\"moduleResolution\":\"NodeNext\",\"allowImportingTsExtensions\":true}' node --loader ts-node/esm --experimental-specifier-resolution=node scripts/audit-tenant-kms-state.mts",
     "kms:provision-runtime-kek": "node scripts/provision-runtime-kek.mjs",
