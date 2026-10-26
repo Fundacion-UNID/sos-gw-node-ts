@@ -100,7 +100,7 @@ describe('VetChain local tenant bootstrap', () => {
 });
 
 describe('VetChain immutable local image prerequisites', () => {
-  it('builds and runs the service with Node 24', () => {
+  it('accepts Node 24 and 26 while retaining Node 24 container images', () => {
     const dockerfile = readFileSync(resolve(process.cwd(), 'Dockerfile'), 'utf8');
     const manifest = JSON.parse(readFileSync(resolve(process.cwd(), 'package.json'), 'utf8')) as {
       engines?: { node?: string };
@@ -110,7 +110,7 @@ describe('VetChain immutable local image prerequisites', () => {
       'FROM node:24-alpine AS builder',
       'FROM node:24-alpine',
     ]);
-    expect(manifest.engines?.node).toBe('^24.0.0');
+    expect(manifest.engines?.node).toBe('^24.0.0 || ^26.0.0');
   });
 
   it('exposes the canonical identity-chaincode parity gate before Fabric smoke', () => {
