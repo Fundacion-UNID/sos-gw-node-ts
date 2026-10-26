@@ -15,7 +15,7 @@
   "main": "src/server.ts",
   "type": "module",
   "engines": {
-    "node": "^24.0.0"
+    "node": "^24.0.0 || ^26.0.0"
   },
   "scripts": {
     "prepublishOnly": "node -e \"console.error('ERROR: sos-gw-node-ts is a deployable service and must never be published to npm'); process.exit(1)\"",

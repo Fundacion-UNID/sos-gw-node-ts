@@ -70,7 +70,7 @@ its interactive API documentation under `/api-docs`.
 
 Requirements:
 
-- Node.js 24
+- Node.js 24 or 26
 - npm with lockfile support
 
 ```bash

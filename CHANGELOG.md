@@ -1,5 +1,7 @@
 ## Unreleased
 
+- Accept Node.js 26 for local installation and execution while retaining
+  Node.js 24 as the validated container-image baseline.
 - Scope every private Digital Twin alias to the operational subject plus its
   exact research-use reference. One person participating in two
   `ResearchStudy` records now receives two unlinkable UUID subjects; consent,
