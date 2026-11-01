@@ -20,6 +20,13 @@ process bootstrap. Tenant operations use the process-owned runtime resource;
 they must not silently fall back to demo secrets or infer custody from a
 selected tenant or index provider.
 
+Decrypted tenant keysets remain in a bounded time-limited process cache. Cache
+expiry, replacement, eviction and invalidation overwrite private key bytes,
+data-encryption keys and HMAC keys before removing the entry. Graceful shutdown
+stops request processing, clears cached and pending tenant keys, and destroys
+the process-owned runtime key. A destroyed runtime key cannot wrap or unwrap
+tenant key material.
+
 ## Deployment
 
 The service is released as an immutable container image, not as an npm package.

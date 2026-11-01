@@ -42,6 +42,9 @@ export interface IKmsService {
    */
   init(): Promise<void>;  
 
+  /** Clears process-resident key material during graceful shutdown. */
+  destroy?(): void;
+
   // --- Key Lifecycle Management ---
 
   /**

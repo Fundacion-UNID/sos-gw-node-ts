@@ -6,6 +6,7 @@ import { GoogleAuth } from 'google-auth-library';
 export interface KmsEnvelopeAdapter {
   wrapKeyMaterial(plaintext: Uint8Array, context: { entityVaultId: string; purpose: string }): Promise<string>;
   unwrapKeyMaterial(wrapped: string, context: { entityVaultId: string; purpose: string }): Promise<Uint8Array>;
+  destroy?(): void;
 }
 
 const RUNTIME_KEK_PREFIX = 'rkek1.';
@@ -18,6 +19,7 @@ const RUNTIME_KEK_PREFIX = 'rkek1.';
  */
 export class RuntimeKekEnvelopeAdapter implements KmsEnvelopeAdapter {
   private readonly kek: Buffer;
+  private destroyed = false;
 
   constructor(runtimeKek: Uint8Array, private readonly legacyRootAdapter?: KmsEnvelopeAdapter) {
     if (runtimeKek.byteLength !== 32) throw new Error('Runtime service KEK must contain exactly 32 bytes.');
@@ -25,6 +27,7 @@ export class RuntimeKekEnvelopeAdapter implements KmsEnvelopeAdapter {
   }
 
   async wrapKeyMaterial(plaintext: Uint8Array, context: { entityVaultId: string; purpose: string }): Promise<string> {
+    this.assertActive();
     const iv = randomBytes(12);
     const cipher = createCipheriv('aes-256-gcm', this.kek, iv);
     cipher.setAAD(Buffer.from(JSON.stringify(context), 'utf8'));
@@ -33,6 +36,7 @@ export class RuntimeKekEnvelopeAdapter implements KmsEnvelopeAdapter {
   }
 
   async unwrapKeyMaterial(wrapped: string, context: { entityVaultId: string; purpose: string }): Promise<Uint8Array> {
+    this.assertActive();
     if (!wrapped.startsWith(RUNTIME_KEK_PREFIX)) {
       if (this.legacyRootAdapter) return this.legacyRootAdapter.unwrapKeyMaterial(wrapped, context);
       throw new Error('Wrapped key material is not a runtime-KEK v1 envelope.');
@@ -47,6 +51,11 @@ export class RuntimeKekEnvelopeAdapter implements KmsEnvelopeAdapter {
 
   destroy(): void {
     this.kek.fill(0);
+    this.destroyed = true;
+  }
+
+  private assertActive(): void {
+    if (this.destroyed) throw new Error('Runtime service KEK has been destroyed.');
   }
 }
 

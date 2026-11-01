@@ -37,6 +37,10 @@ export class DemoKmsService implements IKmsService {
     await this._realKmsService.init();
     console.warn(`[DemoKmsService] Initialized. Key management is delegated to the real KmsService.`);
   }
+
+  destroy(): void {
+    this._realKmsService.destroy?.();
+  }
   
   // --- DELEGATED METHODS (Real Cryptography) ---
 
