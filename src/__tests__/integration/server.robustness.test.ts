@@ -1,4 +1,4 @@
-// src/__tests__/integration/server.robustness.test.ts
+// Flow contract: graceful shutdown stops request processing and clears process-resident cryptographic material before the runtime terminates.
 
 import request from 'supertest';
 import { once } from 'node:events';
@@ -181,6 +181,17 @@ describe('Server Robustness', () => {
           });
         });
       }
+    });
+  });
+
+  describe('graceful shutdown', () => {
+    it('destroys process-resident KMS material when the server runtime stops', async () => {
+      const runtime = await startServer({ listen: false });
+      const destroy = jest.spyOn(runtime.kmsService, 'destroy');
+
+      await runtime.shutdown();
+
+      expect(destroy).toHaveBeenCalledTimes(1);
     });
   });
 });

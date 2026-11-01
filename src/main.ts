@@ -8,11 +8,7 @@ startServer()
       stopping = true;
       console.log(`[GW-API] Received ${signal}; closing async consumer and HTTP server.`);
       try {
-        await runtime.queueAdapter.close?.();
-        await new Promise<void>((resolve, reject) => {
-          if (!runtime.server) return resolve();
-          runtime.server.close((error) => error ? reject(error) : resolve());
-        });
+        await runtime.shutdown();
         process.exit(0);
       } catch (error) {
         console.error('[GW-API] Graceful shutdown failed:', error);

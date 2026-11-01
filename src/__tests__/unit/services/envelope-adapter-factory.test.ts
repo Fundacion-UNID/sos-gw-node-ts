@@ -157,6 +157,17 @@ describe('external envelope adapters', () => {
     await expect(adapter.unwrapKeyMaterial(wrapped, { ...context, entityVaultId: 'tenant-2' })).rejects.toThrow();
   });
 
+  it('rejects key operations after the process-owned runtime KEK is destroyed', async () => {
+    const adapter = new RuntimeKekEnvelopeAdapter(Buffer.alloc(32, 9));
+    const context = { entityVaultId: 'tenant-1', purpose: 'all' };
+    const wrapped = await adapter.wrapKeyMaterial(Buffer.from('tenant-keyset'), context);
+
+    adapter.destroy();
+
+    await expect(adapter.wrapKeyMaterial(Buffer.from('new-keyset'), context)).rejects.toThrow('destroyed');
+    await expect(adapter.unwrapKeyMaterial(wrapped, context)).rejects.toThrow('destroyed');
+  });
+
   it('uses the root adapter only for a legacy direct-KMS envelope', async () => {
     const legacyRoot = {
       wrapKeyMaterial: jest.fn(async () => 'unused'),

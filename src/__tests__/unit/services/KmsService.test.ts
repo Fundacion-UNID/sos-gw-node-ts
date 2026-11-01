@@ -342,7 +342,12 @@ describe('KmsService', () => {
     it('spends five unwraps once per atomic tenant-key cache fill, not once per operation purpose', async () => {
       await kmsService.provisionKeys('tenant-budget');
       const delegate = new InMemoryEnvelopeAdapter();
-      const unwrapKeyMaterial = jest.fn(delegate.unwrapKeyMaterial.bind(delegate));
+      const unwrappedPlaintexts: Uint8Array[] = [];
+      const unwrapKeyMaterial = jest.fn(async (wrapped: string) => {
+        const plaintext = await delegate.unwrapKeyMaterial(wrapped);
+        unwrappedPlaintexts.push(plaintext);
+        return plaintext;
+      });
       const restartedKmsService = new KmsService(mockCryptoService, mockTenantsCacheManager, {
         wrappedKeyRepository,
         envelopeAdapter: {
@@ -357,6 +362,8 @@ describe('KmsService', () => {
       await restartedKmsService.getPublicJwks('tenant-budget');
 
       expect(unwrapKeyMaterial).toHaveBeenCalledTimes(5);
+      expect(unwrappedPlaintexts).toHaveLength(5);
+      expect(unwrappedPlaintexts.every((plaintext) => plaintext.every((byte) => byte === 0))).toBe(true);
     });
 
     it('reloads a tenant private encryption key by recipient kid when decoding after restart', async () => {
@@ -382,6 +389,57 @@ describe('KmsService', () => {
         expect.objectContaining({ kid: mockMlkemPublicKey.kid, dBytes: expect.any(Uint8Array) }),
       );
       expect(jobRequest.content?.body).toEqual({ ok: true });
+    });
+  });
+
+  describe('key lifecycle shutdown', () => {
+    it('zeroizes the former tenant keyset when provisioning rotates it', async () => {
+      const formerCommSecret = new Uint8Array([41]);
+      const formerVcSecret = new Uint8Array([42]);
+      const formerEncryptionSecret = new Uint8Array([43]);
+      mockCryptoService.generateKeyPairMlDsa
+        .mockResolvedValueOnce({ publicJWKey: mockMldsaPublicKey, secretKeyBytes: formerCommSecret })
+        .mockResolvedValueOnce({ publicJWKey: mockMldsaPublicKey, secretKeyBytes: formerVcSecret });
+      mockCryptoService.generateKeyPairMlKem
+        .mockResolvedValueOnce({ publicJWKey: mockMlkemPublicKey, secretKeyBytes: formerEncryptionSecret });
+      await kmsService.provisionKeys('tenant-rotation');
+      await kmsService.getPublicJwks('tenant-rotation');
+
+      await kmsService.provisionKeys('tenant-rotation');
+
+      expect(Array.from(formerCommSecret)).toEqual([0]);
+      expect(Array.from(formerVcSecret)).toEqual([0]);
+      expect(Array.from(formerEncryptionSecret)).toEqual([0]);
+    });
+
+    it('zeroizes cached private key bytes and destroys the process envelope key', async () => {
+      const commSecret = new Uint8Array([11, 12]);
+      const vcSecret = new Uint8Array([21, 22]);
+      const encryptionSecret = new Uint8Array([31, 32]);
+      mockCryptoService.generateKeyPairMlDsa
+        .mockResolvedValueOnce({ publicJWKey: mockMldsaPublicKey, secretKeyBytes: commSecret })
+        .mockResolvedValueOnce({ publicJWKey: mockMldsaPublicKey, secretKeyBytes: vcSecret });
+      mockCryptoService.generateKeyPairMlKem
+        .mockResolvedValueOnce({ publicJWKey: mockMlkemPublicKey, secretKeyBytes: encryptionSecret });
+      const destroy = jest.fn();
+      const envelopeAdapter = {
+        wrapKeyMaterial: jest.fn(async (plaintext: Uint8Array) => Buffer.from(plaintext).toString('base64url')),
+        unwrapKeyMaterial: jest.fn(async (wrapped: string) => new Uint8Array(Buffer.from(wrapped, 'base64url'))),
+        destroy,
+      };
+      const service = new KmsService(mockCryptoService, mockTenantsCacheManager, {
+        wrappedKeyRepository,
+        envelopeAdapter,
+      });
+      await service.provisionKeys('tenant-shutdown');
+      await service.getPublicJwks('tenant-shutdown');
+
+      service.destroy();
+
+      expect(Array.from(commSecret)).toEqual([0, 0]);
+      expect(Array.from(vcSecret)).toEqual([0, 0]);
+      expect(Array.from(encryptionSecret)).toEqual([0, 0]);
+      expect(destroy).toHaveBeenCalledTimes(1);
     });
   });
 

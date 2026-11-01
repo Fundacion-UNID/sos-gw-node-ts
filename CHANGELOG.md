@@ -1,5 +1,10 @@
 ## Unreleased
 
+- Zeroize process-resident tenant private keys, data-encryption keys and HMAC
+  keys when cache entries expire, are replaced, evicted or invalidated. Graceful
+  shutdown now stops the queue and HTTP server, clears all cached and pending
+  tenant key material, and destroys the process-owned runtime KEK.
+
 - Add custodian-side federated SMART verification for registered EHR clients.
   The synchronous `_verify` route authenticates the DCR client assertion,
   verifies a trusted index-provider token and its original professional

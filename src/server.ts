@@ -559,7 +559,25 @@ async function startServer(options?: StartServerOptions) {
           console.log(`[GW-API] Listening on ${config.apiHostname}:${config.port}`);
         });
 
-  return { app, server, queueAdapter, tenantManager, vaultRepository, cryptographyService, blockchainAdapter, credentialLedgerAdapter, kmsService };
+  let shutdownPromise: Promise<void> | undefined;
+  const shutdown = (): Promise<void> => {
+    if (shutdownPromise) return shutdownPromise;
+    shutdownPromise = (async () => {
+      try {
+        queueAdapter.stop();
+        await queueAdapter.close?.();
+        await new Promise<void>((resolve, reject) => {
+          if (!server) return resolve();
+          server.close((error) => error ? reject(error) : resolve());
+        });
+      } finally {
+        kmsService.destroy?.();
+      }
+    })();
+    return shutdownPromise;
+  };
+
+  return { app, server, queueAdapter, tenantManager, vaultRepository, cryptographyService, blockchainAdapter, credentialLedgerAdapter, kmsService, shutdown };
 }
 
 export { startServer, resetServerConfig };

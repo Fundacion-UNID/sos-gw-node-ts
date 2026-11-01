@@ -75,6 +75,15 @@ type EntityKeysSet = {
   hmacKey: Uint8Array;
 }
 
+function zeroizeEntityKeys(entityKeys: EntityKeysSet): void {
+  entityKeys.commSigningKeyPair.secretKeyBytes.fill(0);
+  entityKeys.vcSigningKeyPair.secretKeyBytes.fill(0);
+  entityKeys.legacySigningKeyPair?.secretKeyBytes.fill(0);
+  entityKeys.encryptionKeyPair.secretKeyBytes.fill(0);
+  entityKeys.dataEncryptionKey.fill(0);
+  entityKeys.hmacKey.fill(0);
+}
+
 /**
  * Implements the Key Management Service interface.
  * This service is the high-level facade for all internal cryptographic operations,
@@ -131,6 +140,16 @@ export class KmsService implements IKmsService {
       await this.provisionKeys('host');
     }
     this.isHostInitialized = true;
+  }
+
+  destroy(): void {
+    this.keyMaterialProvider.invalidate();
+    for (const entityKeys of this._managedKeys.values()) zeroizeEntityKeys(entityKeys);
+    this._managedKeys.clear();
+    this.encryptionKeyOwners.clear();
+    this.keyVersions.clear();
+    this.envelopeAdapter.destroy?.();
+    this.isHostInitialized = false;
   }
 
   private checkInitialized(): void {
@@ -199,6 +218,8 @@ export class KmsService implements IKmsService {
       dataEncryptionKey: dataEncryptionKey,
       hmacKey: hmacKey
     };
+    const replacedKeys = this._managedKeys.get(entityVaultId);
+    if (replacedKeys && replacedKeys !== entityKeys) zeroizeEntityKeys(replacedKeys);
     this._managedKeys.set(entityVaultId, entityKeys);
     this.keyVersions.set(entityVaultId, Number(keyVersion));
     await this.persistWrappedKeys(entityVaultId, keyVersion, entityKeys);
@@ -806,6 +827,7 @@ export class KmsService implements IKmsService {
     const cache = new TenantKeyCache<EntityKeysSet>({
       ttlMs: Number.isFinite(ttlMsRaw) && ttlMsRaw > 0 ? ttlMsRaw : 300_000,
       maxEntries: Number.isFinite(maxEntriesRaw) && maxEntriesRaw > 0 ? maxEntriesRaw : 1_024,
+      dispose: zeroizeEntityKeys,
     });
 
     return new InMemoryKeyMaterialProvider<EntityKeysSet>({
@@ -951,11 +973,15 @@ export class KmsService implements IKmsService {
       entityVaultId,
       purpose: record.purpose,
     });
-    if (this.envelopeAdapter instanceof RuntimeKekEnvelopeAdapter && !isRuntimeKekEnvelope(record.wrappedKeyMaterial) && this.wrappedKeyRepository) {
-      const migrated = await this.envelopeAdapter.wrapKeyMaterial(plaintext, { entityVaultId, purpose: record.purpose });
-      await this.wrappedKeyRepository.put({ ...record, wrappedKeyMaterial: migrated, updatedAt: new Date().toISOString() });
+    try {
+      if (this.envelopeAdapter instanceof RuntimeKekEnvelopeAdapter && !isRuntimeKekEnvelope(record.wrappedKeyMaterial) && this.wrappedKeyRepository) {
+        const migrated = await this.envelopeAdapter.wrapKeyMaterial(plaintext, { entityVaultId, purpose: record.purpose });
+        await this.wrappedKeyRepository.put({ ...record, wrappedKeyMaterial: migrated, updatedAt: new Date().toISOString() });
+      }
+      return JSON.parse(Content.bytesToStringUTF8(plaintext));
+    } finally {
+      plaintext.fill(0);
     }
-    return JSON.parse(Content.bytesToStringUTF8(plaintext));
   }
 
   private async findManagedPrivateEncryptionKeyByRecipientKids(recipientKids: string[]): Promise<MlkemPrivateJwk | undefined> {
