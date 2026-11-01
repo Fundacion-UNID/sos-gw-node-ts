@@ -46,6 +46,8 @@ import {
 import { decodeJwt } from 'jose';
 import { randomUUID } from 'node:crypto';
 import { enqueueAsyncJob } from '../services/async-job-submission';
+import type { FederatedSmartVerificationManager } from '../managers/FederatedSmartVerificationManager';
+import { ManagerError } from 'gdc-common-utils-ts/utils/manager-error';
 
 const FORWARDED_HEADER_SEPARATOR = ',';
 type SecurityMode = 'strict' | 'compat' | 'demo';
@@ -592,6 +594,7 @@ export function createApiRouter(
   appAuthManager?: AppAuthorizationManager,
   replayProtectionStore: IReplayProtectionStore = new ReplayProtectionStoreNoop(),
   directJobProcessor?: Readonly<{ process(jobName: string, job: JobRequest): Promise<string> }>,
+  federatedSmartVerificationManager?: FederatedSmartVerificationManager,
 ): express.Router {
   const router = express.Router();
 
@@ -698,6 +701,77 @@ export function createApiRouter(
   };
 
   const cdsRoutePrefix = '/:tenantId/cds-:jurisdiction/v1/:sector/:section/:format/:resourceType';
+
+  /**
+   * @openapi
+   * /{tenantId}/cds-{jurisdiction}/v1/{sector}/identity/openid/smart/token/_verify:
+   *   post:
+   *     tags:
+   *       - 2.2 SMART Token
+   *     summary: Verify a foreign index-provider SMART token for one registered custodian EHR
+   *     description: |
+   *       The EHR authenticates with its DCR-registered private key. The custodian validates the
+   *       index-provider signature, the original professional presentation and the referenced
+   *       consent evidence. The signed result preserves the original subject, purpose, scope and
+   *       expiration and cannot increase the authorization granted by the index provider.
+   *     parameters:
+   *       - $ref: '#/components/parameters/TenantId'
+   *       - $ref: '#/components/parameters/Jurisdiction'
+   *       - $ref: '#/components/parameters/Sector'
+   *     requestBody:
+   *       required: true
+   *       content:
+   *         application/x-www-form-urlencoded:
+   *           schema:
+   *             type: object
+   *             required: [token, client_assertion_type, client_assertion]
+   *             properties:
+   *               token: { type: string }
+   *               token_type_hint: { type: string, enum: [access_token] }
+   *               client_assertion_type: { type: string }
+   *               client_assertion: { type: string }
+   *     responses:
+   *       '200':
+   *         description: Signed token-introspection response addressed to the registered EHR.
+   *         content:
+   *           application/token-introspection+jwt:
+   *             schema: { type: string }
+   *       '400': { description: Invalid request. }
+   *       '401': { description: EHR client authentication failed. }
+   */
+  router.post(
+    '/:tenantId/cds-:jurisdiction/v1/:sector/identity/openid/smart/token/_verify',
+    async (req, res, next) => {
+      if (!federatedSmartVerificationManager) return next();
+      if (normalizeContentType(req.headers['content-type']) !== 'application/x-www-form-urlencoded') {
+        return res.status(415).json({
+          error: 'invalid_request',
+          error_description: 'Content-Type must be application/x-www-form-urlencoded.',
+        });
+      }
+      try {
+        const requestUrl = new URL(req.originalUrl, getRequestBaseUrl(req, apiBaseUrl)).href;
+        const result = await federatedSmartVerificationManager.verify({
+          tenantId: String(req.params.tenantId || ''),
+          jurisdiction: String(req.params.jurisdiction || ''),
+          sector: String(req.params.sector || ''),
+          token: String(req.body?.token || ''),
+          tokenTypeHint: req.body?.token_type_hint ? String(req.body.token_type_hint) : undefined,
+          clientAssertionType: String(req.body?.client_assertion_type || ''),
+          clientAssertion: String(req.body?.client_assertion || ''),
+          requestUrl,
+        });
+        return res.status(200).type('application/token-introspection+jwt').send(result.compactResponse);
+      } catch (error) {
+        const managerError = error instanceof ManagerError ? error : undefined;
+        const status = managerError ? Number(managerError.status) || 400 : 500;
+        return res.status(status).json({
+          error: status === 401 || status === 403 ? 'invalid_client' : 'invalid_request',
+          error_description: managerError?.message || 'Federated SMART verification failed.',
+        });
+      }
+    },
+  );
 
   // --- ASYNC JOB POLLING ENDPOINT (MUST BE DEFINED BEFORE THE GENERIC SUBMISSION ENDPOINT) ---
 

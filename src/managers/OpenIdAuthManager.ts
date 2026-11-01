@@ -513,22 +513,28 @@ export class OpenIdAuthManager implements IJobProcessor {
       throw new ManagerError('The matching consent rule expired before the access token could be issued.', IssueType.Forbidden);
     }
     const lifetimeSeconds = tokenExpiration - now;
+    const consentIdentifiers = evaluation.applicableRules
+      .map((rule) => String(getClaimValue(rule, ClaimConsent.identifier) || '').trim())
+      .filter((identifier, index, identifiers) => Boolean(identifier) && identifiers.indexOf(identifier) === index);
     const jwtPayload = {
       iss: issuerDid,
       sub,
       aud: issuerDid,
       scope: grantedScope,
+      jti: job.content?.jti || thid,
       // RFC 8693 consumers such as DataConv must be able to validate the
       // study authorization offline from the signed token. These claims are
-      // deliberately absent from ordinary subject-scoped SMART tokens.
-      purpose: study ? HealthcareConsentPurposes.Research : undefined,
+      // preserved without broadening the authorization selected above.
+      purpose: purpose || (study ? HealthcareConsentPurposes.Research : undefined),
       study: study || undefined,
       iat: now,
       nbf: now,
       exp: tokenExpiration,
       acr: accessProof.acr,
       amr: accessProof.amr,
+      vp_token: accessProof.mode === 'vp_token' ? vpToken : undefined,
       vp_hash: accessProof.vpHash,
+      consent_ids: consentIdentifiers.length > 0 ? consentIdentifiers : undefined,
       ledger_verified: accessProof.ledgerVerified,
       emergency: breakGlassAuthorization ? true : undefined,
       emergency_consent_id: breakGlassAuthorization?.emergencyConsentId,

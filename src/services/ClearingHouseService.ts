@@ -5,6 +5,11 @@ export type ClearingHouseVerificationRequest = {
   vpToken: string;
   presentationSubmission?: any;
   acrValues: string[];
+  tokenIssuer?: string;
+  tokenSubject?: string;
+  tokenScope?: string;
+  tokenPurpose?: string;
+  consentIdentifiers?: string[];
 };
 
 export type ClearingHouseVerificationResult = {
@@ -33,6 +38,11 @@ export class ClearingHouseService implements IClearingHouseService {
           vp_token: request.vpToken,
           presentation_submission: request.presentationSubmission,
           acr_values: request.acrValues,
+          token_issuer: request.tokenIssuer,
+          token_subject: request.tokenSubject,
+          token_scope: request.tokenScope,
+          token_purpose: request.tokenPurpose,
+          consent_identifiers: request.consentIdentifiers,
         }),
       });
       if (!response.ok) {

@@ -56,6 +56,7 @@ import { TokenManager } from './managers/TokenManager';
 import { createAuthRouter } from './routes/auth';
 import { OpenIdAuthManager } from './managers/OpenIdAuthManager';
 import { ClearingHouseService } from './services/ClearingHouseService';
+import { FederatedSmartVerificationManager } from './managers/FederatedSmartVerificationManager';
 import { IdentityTokenManager } from './managers/IdentityTokenManager';
 import { MedicationStatementManager } from './managers/MedicationStatementManager';
 import { RelatedPersonManager } from './managers/RelatedPersonManager';
@@ -274,6 +275,7 @@ async function startServer(options?: StartServerOptions) {
     taskService,
     taskManager,
     discoveryService,
+    clearingHouseService,
   } = buildManagers({
     config,
     vaultRepository,
@@ -397,6 +399,13 @@ async function startServer(options?: StartServerOptions) {
             keyPrefix: process.env.REPLAY_REDIS_KEY_PREFIX || 'replay:jti',
           })
         : new ReplayProtectionStoreNoop();
+  const federatedSmartVerificationManager = new FederatedSmartVerificationManager({
+    kmsService,
+    tenantsManager: tenantManager,
+    vaultRepository,
+    clearingHouseService,
+    replayProtectionStore,
+  });
   
   // This is the FHIR-specific AuthorizationManager, not our AppAuthorizationManager.
   const authManager: IAuthorizationManager = options?.authManager || new SmartAuthorizationManager();
@@ -444,6 +453,7 @@ async function startServer(options?: StartServerOptions) {
     appAuthManager,
     replayProtectionStore,
     worker,
+    federatedSmartVerificationManager,
   );
   const networkRouter = createNetworkRouter(queueAdapter, kmsService);
   const fhirRouter = createFhirRouter(queueAdapter, authManager);
