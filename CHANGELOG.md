@@ -1,5 +1,12 @@
 ## Unreleased
 
+- Add custodian-side federated SMART verification for registered EHR clients.
+  The synchronous `_verify` route authenticates the DCR client assertion,
+  verifies a trusted index-provider token and its original professional
+  presentation, rechecks current evidence through the tenant clearing house,
+  prevents replay and returns a signed client-addressed introspection result
+  without broadening subject, purpose, scope or expiration.
+
 - Restore the deployment-authorized legacy `Organization/_activate`
   bootstrap-controller proof without weakening modern DCR authorization.
   Tenant-scoped verification may resolve only the stored

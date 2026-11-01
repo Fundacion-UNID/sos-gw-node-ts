@@ -4,6 +4,8 @@
 // professional, delegated and member authorization keeps its credential proof.
 // src/__tests__/managers/OpenIdAuthManager.test.ts
 
+// Flow contract: reuse shared test fixtures and canonical types; do not introduce duplicated literals.
+
 import { OpenIdAuthManager } from '../../managers/OpenIdAuthManager';
 import { IKmsService } from '../../gdc-backend-utils-node/models/IKmsService';
 import { TenantsCacheManager } from '../../managers/TenantsCacheManager';
@@ -75,6 +77,7 @@ import { DeviceBindingStatuses } from 'gdc-common-utils-ts/constants/device';
 import { ClaimsOrganizationSchemaorg } from 'gdc-common-utils-ts/constants/schemaorg';
 import { EXAMPLE_DEVICE_BOUND_SMART_DIDCOMM_MESSAGE } from 'gdc-common-utils-ts/examples/didcomm-identity';
 import { buildStableActorIdentifier } from 'gdc-common-utils-ts/utils/actor-identifier';
+import { decodeJwt } from 'jose';
 import {
   RESEARCH_STUDY_ACCESS_FIXTURE,
   buildResearchStudyAccessScope,
@@ -3029,6 +3032,14 @@ describe('OpenIdAuthManager', () => {
     } as JobRequest);
 
     expect(response.body.access_token).toBeDefined();
+    expect(decodeJwt(String(response.body.access_token))).toMatchObject({
+      jti: 'thid',
+      purpose: HealthcareConsentPurposes.Treatment,
+      vp_token: 'vp',
+      vp_hash: 'hash',
+      consent_ids: [testConsentRulePermitOrgDid[ClaimConsent.identifier]],
+      ledger_verified: true,
+    });
     expect(mockClearingHouse.verifyVpToken).toHaveBeenCalled();
   });
 

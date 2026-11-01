@@ -14,7 +14,7 @@ describe('shared runtime dependency contract', () => {
       fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8'),
     ) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string> };
 
-    expect(packageJson.dependencies?.['gdc-common-utils-ts']).toBe('2.9.29');
+    expect(packageJson.dependencies?.['gdc-common-utils-ts']).toBe('2.9.30');
     expect(packageJson.dependencies?.['fhir-data-utils-ts']).toBe('0.6.23');
     expect(packageJson.dependencies?.['sos-data-utils-ts']).toBe('0.6.18');
     expect(packageJson.dependencies?.['vet-data-utils-ts']).toBe('0.8.7');

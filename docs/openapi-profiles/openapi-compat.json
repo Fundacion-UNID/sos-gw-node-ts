@@ -4,7 +4,7 @@
     "title": "Gateway API - COMPAT",
     "version": "1.0.3",
     "description": "Compatibility profile including legacy and alias routes on top of the core flow.",
-    "x-profile-generated-at": "2026-10-26T19:14:21.424Z",
+    "x-profile-generated-at": "2026-11-01T00:57:06.839Z",
     "x-profile-name": "compat"
   },
   "servers": [],
@@ -2948,6 +2948,77 @@
     }
   },
   "paths": {
+    "/{tenantId}/cds-{jurisdiction}/v1/{sector}/identity/openid/smart/token/_verify": {
+      "post": {
+        "tags": [
+          "2.2 SMART Token"
+        ],
+        "summary": "Verify a foreign index-provider SMART token for one registered custodian EHR",
+        "description": "The EHR authenticates with its DCR-registered private key. The custodian validates the\nindex-provider signature, the original professional presentation and the referenced\nconsent evidence. The signed result preserves the original subject, purpose, scope and\nexpiration and cannot increase the authorization granted by the index provider.\n",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TenantId"
+          },
+          {
+            "$ref": "#/components/parameters/Jurisdiction"
+          },
+          {
+            "$ref": "#/components/parameters/Sector"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "token",
+                  "client_assertion_type",
+                  "client_assertion"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string"
+                  },
+                  "token_type_hint": {
+                    "type": "string",
+                    "enum": [
+                      "access_token"
+                    ]
+                  },
+                  "client_assertion_type": {
+                    "type": "string"
+                  },
+                  "client_assertion": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed token-introspection response addressed to the registered EHR.",
+            "content": {
+              "application/token-introspection+jwt": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request."
+          },
+          "401": {
+            "description": "EHR client authentication failed."
+          }
+        },
+        "x-profile": "core"
+      }
+    },
     "/{tenantId}/cds-{jurisdiction}/v1/{sector}/identity/oidc/credential": {
       "post": {
         "tags": [
