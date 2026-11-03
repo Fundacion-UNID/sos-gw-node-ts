@@ -1342,7 +1342,11 @@ export class HostingManager {
         && !this.isObsoleteDigitalTwinSearchService(tenant.didDocument!.id, service)
       ));
       const nextServices = [...canonicalServices, ...retainedCustomServices];
-      if (JSON.stringify(tenant.didDocument.service || []) === JSON.stringify(nextServices)) continue;
+      const publicCatalogIsCanonical =
+        JSON.stringify(tenant.didDocument.service || []) === JSON.stringify(nextServices);
+      const operationalCatalogIsCanonical =
+        JSON.stringify(tenant.didConfig?.service || []) === JSON.stringify(didConfigServices);
+      if (publicCatalogIsCanonical && operationalCatalogIsCanonical) continue;
 
       const nextTenant: OrganizationConfig = {
         ...tenant,
