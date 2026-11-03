@@ -1,5 +1,11 @@
 ## Unreleased
 
+### Fixed
+
+- Restored the repository-owned local-first, persistence, identity, federated
+  EHR and synchronization contracts, added one rules index linking every
+  repository skill, and made broken rule links an executable local gate.
+
 - Zeroize process-resident tenant private keys, data-encryption keys and HMAC
   keys when cache entries expire, are replaced, evicted or invalidated. Graceful
   shutdown now stops the queue and HTTP server, clears all cached and pending

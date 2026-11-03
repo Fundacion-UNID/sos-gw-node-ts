@@ -40,6 +40,7 @@ neutral SOSChain source narrative or inferred from a human or animal profile.
 
 Primary references:
 - `README.md`
+- [`docs/RULES_INDEX.md`](docs/RULES_INDEX.md)
 - `docs/API_INTEGRATORS_GUIDE.md`
 - `docs/02-API-AND-ENDPOINTS/02.A-API-ENDPOINTS.md`
 - `docs/01-OVERVIEW-AND-GUIDES/01.G-TESTING-PATTERNS.md`

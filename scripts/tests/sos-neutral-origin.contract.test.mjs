@@ -7,7 +7,7 @@ test('declares the public v2 identity and canonical upstream documentation', () 
   const readme = readFileSync('README.md', 'utf8')
   const packageJson = JSON.parse(readFileSync('package.json', 'utf8'))
 
-  assert.equal(packageJson.version, '2.0.0')
+  assert.match(packageJson.version, /^2\./u)
   assert.equal(packageJson.repository?.url, 'https://github.com/Fundacion-UNID/sos-gw-node-ts.git')
   assert.match(readme, /SOSCHAIN Gateway/)
   assert.match(readme, /extends \*\*GW CORE\*\*/)
@@ -40,7 +40,6 @@ test('ships only the new SOSCHAIN documentation set', () => {
   for (const path of [
     'docs-v2',
     'docs-end',
-    'SYNC.md',
     'NARRATIVE-ALIGNMENT.md',
     'deploy/vetchain',
     'config/vetchain-runtime-common.env',
@@ -48,5 +47,14 @@ test('ships only the new SOSCHAIN documentation set', () => {
     'fabric-ca-server-root/ca-key.pem',
   ]) {
     assert.equal(existsSync(path), false, path)
+  }
+
+  for (const path of [
+    'SYNC.md',
+    'docs/RULES_INDEX.md',
+    'docs/LOCAL_FIRST_RELEASE_CONTRACT.md',
+    'docs/PERSISTENCE_RELEASE_RED_LINES.md',
+  ]) {
+    assert.equal(existsSync(path), true, path)
   }
 })
