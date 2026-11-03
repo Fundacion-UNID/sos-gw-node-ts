@@ -915,32 +915,32 @@ export function createDiscoveryRouter(
   });
 
   /**
-   * Resolves a separately governed controller did:web document referenced by
-   * the tenant DID. Multiple controllers are read from their protected
-   * employee records; only their public DID document crosses this boundary.
+   * Resolves a separately governed employee did:web document under the tenant
+   * DID. Employees and controllers are read from their protected employee
+   * records; only the exact public DID document crosses this boundary.
    */
   /**
    * @openapi
    * /{tenantId}/cds-{jurisdiction}/{version}/{sector}/employee/{memberId}/{role}/did.json:
    *   get:
    *     tags: [Discovery]
-   *     summary: Resolve the governed organization controller DID document
+   *     summary: Resolve a governed organization employee DID document
    *     responses:
    *       200:
-   *         description: Public controller DID document
+   *         description: Public employee DID document
    *       404:
-   *         description: Controller DID is not registered for this tenant
+   *         description: Employee DID is not registered for this tenant
    */
   router.get(`${tenantControllerDidPrefix}/did.json`, resolveTenant, async (req, res) => {
-    const controllerDidDocument = await tenantStatusService.resolveControllerDidDocument(
+    const employeeDidDocument = await tenantStatusService.resolveEmployeeDidDocument(
       res.locals.vaultId,
       req.params.memberId,
       req.params.role,
     );
-    if (!controllerDidDocument) {
+    if (!employeeDidDocument) {
       return res.status(404).type('text').send('Not Found');
     }
-    return res.json(controllerDidDocument);
+    return res.json(employeeDidDocument);
   });
 
   router.get([`${hostScopedWellKnownPrefix}/jwks.json`, `${tenantWellKnownPrefix}/jwks.json`], resolveTenant, async (req, res) => {
