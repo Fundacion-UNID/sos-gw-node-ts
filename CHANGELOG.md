@@ -1,5 +1,10 @@
 ## Unreleased
 
+- Repair historical tenant operational service catalogs during startup even
+  when their public DID service projection is already canonical. This restores
+  current routes such as the UNID `animal-research` individual Organization
+  directory without changing tenant identity or protected data.
+
 ### Fixed
 
 - Restored the repository-owned local-first, persistence, identity, federated
