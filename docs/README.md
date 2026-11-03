@@ -1,5 +1,8 @@
 # SOSCHAIN Gateway documentation
 
+Repository governance, task skills and release contracts are linked from the
+[rules index](RULES_INDEX.md). Treat a broken rule link as a failed local gate.
+
 This repository owns the SOS gateway-facing BFF and portal composition
 documentation, as GW CORE did for the original integration. SDK documentation
 describes reusable APIs and runtime mechanics only. Start with the

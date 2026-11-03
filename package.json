@@ -66,6 +66,7 @@
     "check:environment-template": "node scripts/validate-environment-template.mjs && node --test scripts/tests/environment-template-policy.test.mjs",
     "pretest": "npm run check:environment-template",
     "check:gateway-bootstrap": "node --test scripts/tests/sos-neutral-origin.contract.test.mjs",
+    "check:rule-links": "node --test scripts/tests/rule-links.contract.test.mjs",
     "test": "NODE_OPTIONS='--experimental-vm-modules --max-old-space-size=8192' jest",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watchAll",
     "pretest:unit": "npm run check:environment-template",
