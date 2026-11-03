@@ -4,7 +4,7 @@
     "title": "Gateway API - COMPAT",
     "version": "1.0.3",
     "description": "Compatibility profile including legacy and alias routes on top of the core flow.",
-    "x-profile-generated-at": "2026-11-01T00:57:06.839Z",
+    "x-profile-generated-at": "2026-11-03T11:08:08.334Z",
     "x-profile-name": "compat"
   },
   "servers": [],
@@ -9468,13 +9468,13 @@
         "tags": [
           "Discovery"
         ],
-        "summary": "Resolve the governed organization controller DID document",
+        "summary": "Resolve a governed organization employee DID document",
         "responses": {
           "200": {
-            "description": "Public controller DID document"
+            "description": "Public employee DID document"
           },
           "404": {
-            "description": "Controller DID is not registered for this tenant"
+            "description": "Employee DID is not registered for this tenant"
           }
         },
         "x-profile": "core"

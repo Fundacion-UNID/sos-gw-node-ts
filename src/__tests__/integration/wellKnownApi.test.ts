@@ -266,6 +266,35 @@ describe('Well-Known DID Discovery API', () => {
     expect(mockVaultRepository.getContainersInSection).toHaveBeenCalled();
   });
 
+  it('resolves an existing professional DID without adding the employee as a tenant controller', async () => {
+    const urnParts = parseTenantUrn(testTenant1IdentifierUrn)!;
+    const tenantDid = `did:web:gateway.example:${testTenant1AlternateName}:cds-${urnParts.jurisdiction}:${urnParts.version}:${urnParts.sector}`;
+    const memberId = 'zVeterinarianEmailHash';
+    const role = '2250';
+    const professionalDid = `${tenantDid}:employee:${memberId}:${role}`;
+    const professionalDidDocument: DidDocument = {
+      '@context': 'https://www.w3.org/ns/did/v1',
+      id: professionalDid,
+      alsoKnownAs: [`urn:cds-${urnParts.jurisdiction}:${urnParts.version}:organization:vates:${testTenant1AlternateName}:member:${memberId}:${role}`],
+      verificationMethod: [],
+    };
+    mockTenantsCacheManager.getTenant.mockResolvedValue({
+      didDocument: { id: tenantDid, controller: [] },
+    } as any);
+    mockVaultRepository.getContainersInSection.mockResolvedValueOnce([{
+      id: 'governed-veterinarian-record',
+      content: { id: professionalDid, didDocument: professionalDidDocument },
+    }] as any);
+
+    const response = await invokeExpress(app, {
+      method: 'GET',
+      url: `/${testTenant1AlternateName}/cds-${urnParts.jurisdiction}/${urnParts.version}/${urnParts.sector}/employee/${memberId}/${role}/did.json`,
+    });
+
+    expect(response.status).toBe(200);
+    expect(JSON.parse(response.text)).toEqual(professionalDidDocument);
+  });
+
   it('publishes human-health capabilities at the exact section and format FHIR base', async () => {
     const urnParts = parseTenantUrn(testTenant1IdentifierUrn)!;
     const operationalUrl = `https://gateway.example/${testTenant1AlternateName}/cds-${urnParts.jurisdiction}/${urnParts.version}/${urnParts.sector}`;

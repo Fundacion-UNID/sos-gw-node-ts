@@ -1,5 +1,10 @@
 ## Unreleased
 
+- Resolve public DID documents for governed organization employees as well as
+  tenant controllers. Existing professionals can now present their stored
+  authorization for an additional DCR client without a new invitation,
+  employee record, organization registration or licence.
+
 - Repair historical tenant operational service catalogs during startup even
   when their public DID service projection is already canonical. This restores
   current routes such as the UNID `animal-research` individual Organization

@@ -1,3 +1,4 @@
+/** Flow contract: public tenant discovery resolves exact governed employee DIDs without granting controller authority. */
 import { jest } from '@jest/globals';
 import { TenantStatusService } from '../../../services/TenantStatusService';
 import type { IDiscoveryTenantRegistry } from '../../../managers/IDiscoveryTenantRegistry';
@@ -8,6 +9,7 @@ const TENANT_VAULT_ID = 'onehealth-research_VATES-EXAMPLE';
 const TENANT_COLLECTION = 'tenant-collection-example';
 const TENANT_DID = 'did:web:gateway.example:VATES-EXAMPLE:cds-ES:v1:onehealth-research';
 const CONTROLLER_DID = `${TENANT_DID}:employee:zExample:RESPRSN`;
+const VETERINARIAN_DID = `${TENANT_DID}:employee:zVeterinarian:2250`;
 const CONTROLLER_KID = 'urn:jwk:sha-256:example-controller-key';
 const ACTOR_IDENTIFIER = 'urn:multibase:zExampleActor';
 
@@ -118,6 +120,33 @@ describe('TenantStatusService', () => {
     const resolved = await new TenantStatusService(tenants, vaultRepository, kmsService)
       .resolveControllerDidDocument(TENANT_VAULT_ID, 'zExample', 'RESPRSN');
     expect(resolved?.id).toBe(CONTROLLER_DID);
+  });
+
+  it('resolves an existing veterinarian DID without requiring controller membership', async () => {
+    tenants.getTenant.mockResolvedValue({
+      status: 'active',
+      didDocument: { id: TENANT_DID, controller: [CONTROLLER_DID] },
+    });
+    const veterinarianDocument = {
+      id: 'governed-veterinarian-record',
+      status: 'active',
+      sequence: 0,
+      content: {
+        didDocument: {
+          id: VETERINARIAN_DID,
+          alsoKnownAs: ['urn:cds-es:v1:organization:vates:VATES-EXAMPLE:member:zVeterinarian:2250'],
+          verificationMethod: [],
+        },
+      },
+    };
+    (vaultRepository.getContainersInSection as any).mockImplementation(async (_scope: string, section: string) => (
+      String(section).endsWith('employees') ? [veterinarianDocument] : []
+    ));
+
+    const resolved = await new TenantStatusService(tenants, vaultRepository, kmsService)
+      .resolveEmployeeDidDocument(TENANT_VAULT_ID, 'zVeterinarian', '2250');
+
+    expect(resolved).toEqual(veterinarianDocument.content.didDocument);
   });
 
   it('reports dcr_active only when the same controller actor has an active device binding', async () => {

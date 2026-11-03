@@ -115,11 +115,14 @@ export class TenantStatusService {
   }
 
   /**
-   * Resolves one public controller DID document from the authoritative tenant
-   * controller list and the separately protected employee records. Historical
-   * single-controller metadata remains a read-only compatibility fallback.
+   * Resolves one exact public employee DID document from the authoritative,
+   * separately protected employee records. Controller membership is not
+   * required: an existing professional needs the same public document to prove
+   * its organization authorization before registering another DCR client.
+   * Historical single-controller metadata remains a read-only compatibility
+   * fallback for the matching controller DID only.
    */
-  public async resolveControllerDidDocument(
+  public async resolveEmployeeDidDocument(
     vaultId: string,
     memberId: string,
     role: string,
@@ -127,9 +130,9 @@ export class TenantStatusService {
     const tenant = await this.tenants.getTenant(vaultId);
     if (!tenant) return undefined;
     const suffix = `:employee:${String(memberId).trim()}:${String(role).trim()}`;
-    const controllerDid = this.asStrings(tenant.didDocument?.controller)
-      .find((did) => did.endsWith(suffix));
-    if (!controllerDid) return undefined;
+    const tenantDid = String(tenant.didDocument?.id || '').trim();
+    if (!tenantDid) return undefined;
+    const employeeDid = `${tenantDid}${suffix}`;
 
     const collectionName = await this.tenants.getCollectionName(vaultId);
     const employeeDocs = collectionName
@@ -137,11 +140,21 @@ export class TenantStatusService {
       : [];
     for (const document of employeeDocs) {
       const employee = await this.safeUnprotect<EntityConfig>(document, vaultId);
-      if (employee?.didDocument?.id === controllerDid) return employee.didDocument;
+      if (employee?.didDocument?.id === employeeDid) return employee.didDocument;
     }
 
     const compatibilityDocument = tenant.meta?.controllerDidDocument as DidDocument | undefined;
-    return compatibilityDocument?.id === controllerDid ? compatibilityDocument : undefined;
+    const isController = this.asStrings(tenant.didDocument?.controller).includes(employeeDid);
+    return isController && compatibilityDocument?.id === employeeDid ? compatibilityDocument : undefined;
+  }
+
+  /** @deprecated Use resolveEmployeeDidDocument for both members and controllers. */
+  public resolveControllerDidDocument(
+    vaultId: string,
+    memberId: string,
+    role: string,
+  ): Promise<DidDocument | undefined> {
+    return this.resolveEmployeeDidDocument(vaultId, memberId, role);
   }
 
   private projectKids(didDocument: EntityConfig['didDocument'] | undefined): TenantControllerStatus['kids'] {
