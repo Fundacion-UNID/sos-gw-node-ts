@@ -12,6 +12,12 @@
 
 ### Fixed
 
+- Render the exact Test Network organization-admission issuer and signer
+  allowlists into GKE ConfigMaps. Staging hosts can now trust only the
+  explicitly configured admission authority and active governance key instead
+  of rejecting every reviewed organization credential when those variables
+  were omitted from the deployment template.
+
 - Restored the repository-owned local-first, persistence, identity, federated
   EHR and synchronization contracts, added one rules index linking every
   repository skill, and made broken rule links an executable local gate.

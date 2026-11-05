@@ -103,6 +103,19 @@ describe('public SOSChain staging deployment examples', () => {
     expect(deployer).toContain('s|__HOST_PUBLIC_URL__|${HOST_PUBLIC_URL}|g');
   });
 
+  it('renders the exact Test Network organization admission issuer and signer allowlists', () => {
+    const target = readExample('gke.config.example');
+    const configMap = readGkeConfigMap();
+    const deployer = readGkeDeployer();
+
+    expect(target).toContain('HOST_ORGANIZATION_AUTHORIZATION_ISSUERS=replace-with-admission-issuer-did-list');
+    expect(target).toContain('HOST_ORGANIZATION_AUTHORIZATION_SIGNERS=replace-with-admission-signer-json');
+    expect(configMap).toContain('HOST_ORGANIZATION_AUTHORIZATION_ISSUERS: "__HOST_ORGANIZATION_AUTHORIZATION_ISSUERS__"');
+    expect(configMap).toContain("HOST_ORGANIZATION_AUTHORIZATION_SIGNERS: '__HOST_ORGANIZATION_AUTHORIZATION_SIGNERS__'");
+    expect(deployer).toContain('s|__HOST_ORGANIZATION_AUTHORIZATION_ISSUERS__|${HOST_ORGANIZATION_AUTHORIZATION_ISSUERS}|g');
+    expect(deployer).toContain('s|__HOST_ORGANIZATION_AUTHORIZATION_SIGNERS__|${host_organization_authorization_signers_sed}|g');
+  });
+
   it('enables the canonical DIDComm plaintext media type for the shared SDK in compat staging', () => {
     const deployer = readGkeDeployer();
 
