@@ -67,6 +67,8 @@ optional_env_defaults=(
   "SUBSECTORSALLOWED=care,research,tech"
   "SECTORS_ALLOWED="
   "SUBJECT_IDENTITY_BINDING_TRUSTED_ISSUERS="
+  "HOST_ORGANIZATION_AUTHORIZATION_ISSUERS="
+  "HOST_ORGANIZATION_AUTHORIZATION_SIGNERS="
   "HOST_LEGACY_CONTROLLER_SCOPES="
   "QUEUE_PROVIDER=mem"
   "ASYNC_RESPONSE_STORE_PROVIDER=mem"
@@ -134,9 +136,11 @@ render_template() {
   local dest="$2"
   local host_legacy_controller_scopes_sed
   local host_legal_name_sed
+  local host_organization_authorization_signers_sed
   local oidc_trusted_providers_json_sed
   host_legacy_controller_scopes_sed="$(printf '%s' "${HOST_LEGACY_CONTROLLER_SCOPES}" | sed 's/[\\&|]/\\&/g')"
   host_legal_name_sed="$(printf '%s' "${HOST_LEGAL_NAME}" | sed 's/[\\&|]/\\&/g')"
+  host_organization_authorization_signers_sed="$(printf '%s' "${HOST_ORGANIZATION_AUTHORIZATION_SIGNERS}" | sed 's/[\\&|]/\\&/g')"
   oidc_trusted_providers_json_sed="$(printf '%s' "${OIDC_TRUSTED_PROVIDERS_JSON}" | sed 's/[\\&|]/\\&/g')"
   sed \
     -e "s|__K8S_NAMESPACE_GDC__|${K8S_NAMESPACE_GDC}|g" \
@@ -181,6 +185,8 @@ render_template() {
     -e "s|__SECTORS_ALLOWED__|${SECTORS_ALLOWED}|g" \
     -e "s|__ALLOWED_SECTORS__|${ALLOWED_SECTORS}|g" \
     -e "s|__SUBJECT_IDENTITY_BINDING_TRUSTED_ISSUERS__|${SUBJECT_IDENTITY_BINDING_TRUSTED_ISSUERS}|g" \
+    -e "s|__HOST_ORGANIZATION_AUTHORIZATION_ISSUERS__|${HOST_ORGANIZATION_AUTHORIZATION_ISSUERS}|g" \
+    -e "s|__HOST_ORGANIZATION_AUTHORIZATION_SIGNERS__|${host_organization_authorization_signers_sed}|g" \
     -e "s|__HOST_LEGACY_CONTROLLER_SCOPES__|${host_legacy_controller_scopes_sed}|g" \
     -e "s|__QUEUE_PROVIDER__|${QUEUE_PROVIDER}|g" \
     -e "s|__ASYNC_RESPONSE_STORE_PROVIDER__|${ASYNC_RESPONSE_STORE_PROVIDER}|g" \
