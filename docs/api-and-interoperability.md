@@ -22,8 +22,8 @@ leak internal claims or storage metadata.
 ## SDK and data repositories
 
 - [fhir-data-utils-ts](https://github.com/Fundacion-UNID/fhir-data-utils-ts)
-- [sos-data-utils-ts](https://github.com/Fundacion-UNID/sos-data-utils-ts)
-- [sos-sdk-core-ts](https://github.com/Fundacion-UNID/sos-sdk-core-ts)
+- [sos-data-utils-ts](https://github.com/soschain/sos-data-utils-ts)
+- [sos-sdk-core-ts](https://github.com/soschain/sos-sdk-core-ts)
 - [gdc-common-utils-ts](https://github.com/Global-DataCare/gdc-common-utils-ts)
 - [gdc-sdk-core-ts](https://github.com/Global-DataCare/gdc-sdk-core-ts)
 - [gdc-sdk-node-ts](https://github.com/Global-DataCare/gdc-sdk-node-ts)

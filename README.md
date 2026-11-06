@@ -29,9 +29,9 @@ in its owning repositories and is not part of this public source history.
 | [gdc-sdk-core-ts](https://github.com/Global-DataCare/gdc-sdk-core-ts) | Upstream SDK contracts present through the dependency graph |
 | [gdc-sdk-node-ts](https://github.com/Global-DataCare/gdc-sdk-node-ts) | Node.js SDK and live gateway integration tooling |
 | [fhir-data-utils-ts](https://github.com/Fundacion-UNID/fhir-data-utils-ts) | Product-neutral HL7 FHIR data utilities |
-| [sos-data-utils-ts](https://github.com/Fundacion-UNID/sos-data-utils-ts) | Shared SOS domain data contracts |
-| [sos-sdk-core-ts](https://github.com/Fundacion-UNID/sos-sdk-core-ts) | High-level SOS client SDK contracts |
-| [sos-sdk-node-ts](https://github.com/Fundacion-UNID/sos-sdk-node-ts) | Node.js SOS SDK and BFF/runtime integrations |
+| [sos-data-utils-ts](https://github.com/soschain/sos-data-utils-ts) | Shared SOS domain data contracts |
+| [sos-sdk-core-ts](https://github.com/soschain/sos-sdk-core-ts) | High-level SOS client SDK contracts |
+| [sos-sdk-node-ts](https://github.com/soschain/sos-sdk-node-ts) | Node.js SOS SDK and BFF/runtime integrations |
 | [SOSCHAIN documentation](https://github.com/soschain/docs) | Documentation for the original SOSCHAIN project |
 
 SDK repositories are integration peers rather than direct application code

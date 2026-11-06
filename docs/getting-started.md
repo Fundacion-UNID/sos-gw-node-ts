@@ -9,7 +9,7 @@
 ## Install and build
 
 ```bash
-git clone https://github.com/Fundacion-UNID/sos-gw-node-ts.git
+git clone https://github.com/soschain/sos-gw-node-ts.git
 cd sos-gw-node-ts
 npm ci
 npm run build

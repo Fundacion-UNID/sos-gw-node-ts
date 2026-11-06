@@ -693,7 +693,7 @@ Use the canonical Spanish security article when a VetChain change affects
 capture, terminology selection, authorship, professional attestation, the
 animal digital twin, the index, continuity copies or SOS emergency access:
 
-- https://github.com/Fundacion-UNID/soschain-unid-personal-next/blob/main/docs/SECURITY_LIFECYCLE_ARTICLE.es.md
+- https://github.com/soschain/soschain-unid-personal-next/blob/main/docs/SECURITY_LIFECYCLE_ARTICLE.es.md
 
 Update its `current` versus `target` status in the same change. Product data may
 use authenticated DIDComm plain or FHIR JSON only on an explicitly configured

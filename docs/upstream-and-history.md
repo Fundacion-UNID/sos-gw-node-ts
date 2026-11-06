@@ -27,9 +27,9 @@ earlier design is implemented by the current gateway.
 - [gdc-sdk-core-ts](https://github.com/Global-DataCare/gdc-sdk-core-ts)
 - [gdc-sdk-node-ts](https://github.com/Global-DataCare/gdc-sdk-node-ts)
 - [fhir-data-utils-ts](https://github.com/Fundacion-UNID/fhir-data-utils-ts)
-- [sos-data-utils-ts](https://github.com/Fundacion-UNID/sos-data-utils-ts)
-- [sos-sdk-core-ts](https://github.com/Fundacion-UNID/sos-sdk-core-ts)
-- [sos-sdk-node-ts](https://github.com/Fundacion-UNID/sos-sdk-node-ts)
+- [sos-data-utils-ts](https://github.com/soschain/sos-data-utils-ts)
+- [sos-sdk-core-ts](https://github.com/soschain/sos-sdk-core-ts)
+- [sos-sdk-node-ts](https://github.com/soschain/sos-sdk-node-ts)
 
 Each repository owns its contracts and release history. This gateway records
 only the exact package versions it consumes in its lockfile.
