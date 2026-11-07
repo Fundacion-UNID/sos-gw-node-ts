@@ -5,6 +5,16 @@
   unanswered audio remain canonical Communications.
 - Move the bounded synthetic-card directory used by cross-portal Demo flows
   from the assistant service to the non-production GW storage adapter.
+- Make the all-local architecture explicit for new consumers: GW managers use
+  `IVaultRepository`, the local profile injects `VaultMemRepository`, and the
+  synthetic directory plus call Communications disappear with that process.
+  Firestore, Chat and portal-specific stores are not alternative local sources
+  of truth. Test Network and production retain their configured durable
+  adapters while exercising the same manager and route contracts.
+- Add BFF-scoped non-production card registration, exact resolution and
+  generation cleanup routes so a Personal browser can create a synthetic card
+  and a Professional browser can resolve it without copying directory logic or
+  granting Demo tokens gateway authority.
 
 - Add an executable Demo/Test Network adapter-parity rule: the same managers
   use `IVaultRepository`, all-local selects `VaultMemRepository`, and Expo or
