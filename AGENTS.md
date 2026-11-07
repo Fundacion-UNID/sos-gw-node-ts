@@ -7,6 +7,9 @@ Apply
 Demo and Test Network execute the same GW managers through
 `IVaultRepository`. All-local selects `VaultMemRepository`; Expo consumers use
 SQLite through the same contract. Firestore must not define Demo behavior.
+Do not start or require Chat for the CH all-local portal gate. Assistants have
+separate integration tests. RTC is a dedicated provider, while call artifacts
+remain canonical Communications.
 
 ## Mandatory TDD
 

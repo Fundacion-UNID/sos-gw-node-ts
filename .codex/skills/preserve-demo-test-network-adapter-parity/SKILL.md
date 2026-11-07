@@ -14,6 +14,10 @@ Firestore or PostgreSQL. Adapter imports belong only in `buildInfrastructure`.
 Every change requires a negative architecture test and the same local
 UI -> BFF -> SDK -> GW journey before Test Network.
 
+The CH all-local portal profile does not start or require Chat, the telephone
+assistant or the optional web assistant. Treat RTC as a dedicated provider and
+persist invitations, terminal states and unanswered audio as Communications.
+
 ## Mandatory local-first release continuity
 
 Follow `docs/LOCAL_FIRST_RELEASE_CONTRACT.md`. Make at most three attempts at
