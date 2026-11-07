@@ -17,6 +17,8 @@ UI -> BFF -> SDK -> GW journey before Test Network.
 The CH all-local portal profile does not start or require Chat, the telephone
 assistant or the optional web assistant. Treat RTC as a dedicated provider and
 persist invitations, terminal states and unanswered audio as Communications.
+Cross-portal synthetic-card discovery belongs to the non-production GW storage
+adapter and must not introduce an assistant-service dependency.
 
 ## Mandatory local-first release continuity
 

@@ -16,6 +16,7 @@ describe('Demo/Test Network adapter parity', () => {
     expect(contract).toMatch(/all-local portal[\s\S]*(does not|no)[\s\S]*(start or require|requires?)[\s\S]*Chat/is);
     expect(contract).toMatch(/dedicated RTC provider/is);
     expect(contract).toMatch(/unanswered audio[\s\S]*Communications/is);
+    expect(contract).toMatch(/synthetic-card[\s\S]*GW[\s\S]*adapter/is);
   });
 
   it('selects the memory vault only from the infrastructure composition root', () => {

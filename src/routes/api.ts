@@ -48,11 +48,32 @@ import { randomUUID } from 'node:crypto';
 import { enqueueAsyncJob } from '../services/async-job-submission';
 import type { FederatedSmartVerificationManager } from '../managers/FederatedSmartVerificationManager';
 import { ManagerError } from 'gdc-common-utils-ts/utils/manager-error';
+import { buildDemoWorkspaceScope } from 'sos-data-utils-ts/demo-workspace-scope';
+import { DemoWorkspaceCardDirectory } from '../services/demo/DemoWorkspaceCardDirectory';
 
 const FORWARDED_HEADER_SEPARATOR = ',';
 type SecurityMode = 'strict' | 'compat' | 'demo';
 type ParsedContentType = 'secure-form' | 'didcomm-plain' | 'json' | 'fhir' | 'unsupported';
 const DIDCOMM_PLAINTEXT_JSON_LEGACY_MEDIA_TYPE = 'application/didcomm-plaintext+json';
+
+function authorizeDemoPortalBff(authorization: unknown, scopeKey: string): void {
+  const token = String(authorization || '').replace(/^Bearer\s+/iu, '').trim();
+  if (!token) throw Object.assign(new Error('demo_workspace_bff_token_required'), { status: 401 });
+  try {
+    const payload = decodeJwt(token);
+    if (payload.purpose !== 'demo-bff-id-token' || payload.scopeKey !== scopeKey || !String(payload.sub || '').trim()) {
+      throw new Error('demo_workspace_bff_token_invalid');
+    }
+  } catch {
+    throw Object.assign(new Error('demo_workspace_bff_token_invalid'), { status: 401 });
+  }
+}
+
+function demoErrorStatus(error: unknown): number {
+  const explicit = Number((error as { status?: number })?.status);
+  if (explicit >= 400 && explicit < 600) return explicit;
+  return /not_found/u.test(error instanceof Error ? error.message : String(error)) ? 404 : 400;
+}
 
 /**
  * Resolves the accepted Offer before DCR from either contextualized schema.org
@@ -595,8 +616,50 @@ export function createApiRouter(
   replayProtectionStore: IReplayProtectionStore = new ReplayProtectionStoreNoop(),
   directJobProcessor?: Readonly<{ process(jobName: string, job: JobRequest): Promise<string> }>,
   federatedSmartVerificationManager?: FederatedSmartVerificationManager,
+  demoWorkspaceEnabled = false,
 ): express.Router {
   const router = express.Router();
+  const demoDirectory = new DemoWorkspaceCardDirectory(vaultRepository);
+
+  router.post('/api/internal/demo/cards', async (req, res) => {
+    if (!demoWorkspaceEnabled) return res.status(404).json({ error: 'demo_workspace_disabled' });
+    try {
+      const scope = buildDemoWorkspaceScope(req.body?.scope);
+      authorizeDemoPortalBff(req.headers.authorization, scope.key);
+      const record = await demoDirectory.register({
+        scope, generationId: req.body?.generationId, cardNumber: req.body?.cardNumber,
+        subjectIdentifier: req.body?.subjectIdentifier, displayName: req.body?.displayName,
+        controllerActorIdentifier: req.body?.controllerActorIdentifier,
+        subjectKind: req.body?.subjectKind, sourceSector: req.body?.sourceSector,
+      });
+      return res.status(201).json({ registered: true, expiresAt: record.expiresAt });
+    } catch (error) { return res.status(demoErrorStatus(error)).json({ error: error instanceof Error ? error.message : String(error) }); }
+  });
+
+  router.get('/api/internal/demo/cards/resolve', async (req, res) => {
+    if (!demoWorkspaceEnabled) return res.status(404).json({ error: 'demo_workspace_disabled' });
+    try {
+      const scope = buildDemoWorkspaceScope({
+        deployment: req.query.deployment, network: req.query.network,
+        portalFamily: req.query.portalFamily, tenantId: req.query.tenantId,
+      });
+      authorizeDemoPortalBff(req.headers.authorization, scope.key);
+      const record = await demoDirectory.resolve(scope, String(req.query.cardNumber || ''));
+      if (!record) return res.status(404).json({ error: 'demo_workspace_card_not_found' });
+      const { id: _id, scopeKey: _scopeKey, cardLocatorHash: _cardLocatorHash, revokedAt: _revokedAt, ...view } = record;
+      return res.json(view);
+    } catch (error) { return res.status(demoErrorStatus(error)).json({ error: error instanceof Error ? error.message : String(error) }); }
+  });
+
+  router.delete('/api/internal/demo/generations/:generationId', async (req, res) => {
+    if (!demoWorkspaceEnabled) return res.status(404).json({ error: 'demo_workspace_disabled' });
+    try {
+      const scope = buildDemoWorkspaceScope(req.body?.scope);
+      authorizeDemoPortalBff(req.headers.authorization, scope.key);
+      await demoDirectory.revoke(scope, req.params.generationId);
+      return res.sendStatus(204);
+    } catch (error) { return res.status(demoErrorStatus(error)).json({ error: error instanceof Error ? error.message : String(error) }); }
+  });
 
   const resolveVaultId = async (tenantId: string, sector: string): Promise<string> => {
     if (tenantId === 'host') return 'host';

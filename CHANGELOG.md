@@ -3,6 +3,8 @@
 - Separate CH all-local from optional assistant integration and portal RTC.
   Calls use a dedicated RTC provider; invitations, terminal states and
   unanswered audio remain canonical Communications.
+- Move the bounded synthetic-card directory used by cross-portal Demo flows
+  from the assistant service to the non-production GW storage adapter.
 
 - Add an executable Demo/Test Network adapter-parity rule: the same managers
   use `IVaultRepository`, all-local selects `VaultMemRepository`, and Expo or

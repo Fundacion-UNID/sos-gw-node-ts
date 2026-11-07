@@ -454,6 +454,7 @@ async function startServer(options?: StartServerOptions) {
     replayProtectionStore,
     worker,
     federatedSmartVerificationManager,
+    config.networkMode !== 'network',
   );
   const networkRouter = createNetworkRouter(queueAdapter, kmsService);
   const fhirRouter = createFhirRouter(queueAdapter, authManager);

@@ -10,6 +10,8 @@ SQLite through the same contract. Firestore must not define Demo behavior.
 Do not start or require Chat for the CH all-local portal gate. Assistants have
 separate integration tests. RTC is a dedicated provider, while call artifacts
 remain canonical Communications.
+Keep cross-portal synthetic-card discovery behind the non-production GW
+storage adapter; never move that directory into an assistant service.
 
 ## Mandatory TDD
 
