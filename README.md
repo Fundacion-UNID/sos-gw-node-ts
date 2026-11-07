@@ -8,6 +8,11 @@ configured Firestore or PostgreSQL adapter. Expo uses SQLite through the same
 Confidential Storage contract. Firestore must not create Demo-specific
 business behavior.
 
+The CH all-local portal profile requires no Chat, telephone assistant or web
+assistant. Those are separate channel gates. Portal audio/video uses a
+dedicated RTC provider; invitations, terminal states and optional unanswered
+audio are persisted as Communications through the normal GW managers.
+
 SOSCHAIN Gateway extends **GW CORE**, the open-source gateway infrastructure
 developed within the **Global Data Care ecosystem**:
 

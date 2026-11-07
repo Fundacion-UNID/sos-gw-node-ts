@@ -13,6 +13,9 @@ describe('Demo/Test Network adapter parity', () => {
     expect(contract).toMatch(/Demo and Test Network.*same.*managers/is);
     expect(contract).toMatch(/Expo.*SQLite/is);
     expect(contract).toMatch(/Firestore must not.*Demo/is);
+    expect(contract).toMatch(/all-local portal[\s\S]*(does not|no)[\s\S]*(start or require|requires?)[\s\S]*Chat/is);
+    expect(contract).toMatch(/dedicated RTC provider/is);
+    expect(contract).toMatch(/unanswered audio[\s\S]*Communications/is);
   });
 
   it('selects the memory vault only from the infrastructure composition root', () => {
