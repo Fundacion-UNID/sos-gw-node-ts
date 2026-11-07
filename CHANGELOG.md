@@ -1,5 +1,9 @@
 ## Unreleased
 
+- Add an executable Demo/Test Network adapter-parity rule: the same managers
+  use `IVaultRepository`, all-local selects `VaultMemRepository`, and Expo or
+  durable deployments inject their adapter without creating Demo behavior.
+
 - Resolve public DID documents for governed organization employees as well as
   tenant controllers. Existing professionals can now present their stored
   authorization for an additional DCR client without a new invitation,

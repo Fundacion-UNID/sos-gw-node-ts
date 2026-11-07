@@ -1,5 +1,13 @@
 # SOSCHAIN Gateway
 
+## Demo/Test Network invariant
+
+Demo and Test Network execute the same managers through `IVaultRepository`.
+All-local uses `VaultMemRepository`; durable Test Network/production selects a
+configured Firestore or PostgreSQL adapter. Expo uses SQLite through the same
+Confidential Storage contract. Firestore must not create Demo-specific
+business behavior.
+
 SOSCHAIN Gateway extends **GW CORE**, the open-source gateway infrastructure
 developed within the **Global Data Care ecosystem**:
 
